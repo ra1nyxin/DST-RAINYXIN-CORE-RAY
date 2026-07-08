@@ -6,9 +6,10 @@ Current features:
 - Nearby ground flowers are highlighted with local arrow indicators around your character.
 - The indicators are rendered only on your own client.
 - The server and host do not need to install this mod.
+- Flower guidance now updates faster, covers a larger area, and supports denser all-angle direction display.
 ]]
 author = "ra1nyxin"
-version = "0.1.1"
+version = "0.1.2"
 
 forumthread = ""
 api_version = 10

@@ -3,10 +3,12 @@ local Class = _G.Class
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 
-local UPDATE_INTERVAL = 0.25
-local SEARCH_RADIUS = 20
-local RING_RADIUS = 110
+local UPDATE_INTERVAL = 0.08
+local SEARCH_RADIUS = 30
+local RING_RADIUS = 125
 local PLAYER_SCREEN_Y_OFFSET = 36
+local MAX_ARROWS = 12
+local MIN_ANGLE_SEPARATION = 12 * (_G.DEGREES or (math.pi / 180))
 local FLOWER_PREFABS = {
     flower = true,
     flower_evil = true,
@@ -14,20 +16,9 @@ local FLOWER_PREFABS = {
 }
 local FLOWER_MUST_TAGS = { "pickable" }
 local FLOWER_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
-local ARROW_CHARS = {
-    "\226\134\146",
-    "\226\134\151",
-    "\226\134\145",
-    "\226\134\150",
-    "\226\134\144",
-    "\226\134\153",
-    "\226\134\147",
-    "\226\134\152",
-}
+local ARROW_CHAR = "\226\150\178"
 
 local TWO_PI = math.pi * 2
-local SECTOR_SIZE = TWO_PI / 8
-local HALF_SECTOR = SECTOR_SIZE * 0.5
 local DEGREES = _G.DEGREES or (math.pi / 180)
 
 local function RotateByHeading(dx, dz)
@@ -61,12 +52,22 @@ local function GetScreenPoint(x, y, z)
     return nil, nil, false
 end
 
-local function GetDirectionSlot(dx, dy)
+local function NormalizeAngle(angle)
+    while angle <= -math.pi do
+        angle = angle + TWO_PI
+    end
+    while angle > math.pi do
+        angle = angle - TWO_PI
+    end
+    return angle
+end
+
+local function GetDirectionAngle(dx, dy)
     local angle = math.atan2(dy, dx)
     if angle < 0 then
         angle = angle + TWO_PI
     end
-    return (math.floor((angle + HALF_SECTOR) / SECTOR_SIZE) % 8) + 1
+    return angle
 end
 
 local FlowerRayWidget = Class(Widget, function(self, owner)
@@ -86,7 +87,7 @@ local FlowerRayWidget = Class(Widget, function(self, owner)
         self:SetScaleMode(_G.SCALEMODE_PROPORTIONAL)
     end
 
-    for i = 1, 8 do
+    for i = 1, MAX_ARROWS do
         local arrow = self:AddChild(Text(_G.CHATFONT, 26, ""))
         arrow:SetColour(1, 0.95, 0.3, 0.95)
         arrow:Hide()
@@ -111,7 +112,8 @@ end
 
 function FlowerRayWidget:CollectFlowers(player)
     local px, py, pz = player.Transform:GetWorldPosition()
-    local candidates = {}
+    local raw_candidates = {}
+    local filtered_candidates = {}
     local ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, FLOWER_MUST_TAGS, FLOWER_CANT_TAGS)
 
     local psx, psy, has_player_screen = GetScreenPoint(px, py, pz)
@@ -144,26 +146,44 @@ function FlowerRayWidget:CollectFlowers(player)
                 local len_sq = dx * dx + dy * dy
                 if len_sq > 1 then
                     local dist = math.sqrt(dist_sq)
-                    local slot = GetDirectionSlot(dx, dy)
-                    local current = candidates[slot]
-                    if current == nil or dist < current.dist then
-                        candidates[slot] = {
-                            dx = dx,
-                            dy = dy,
-                            dist = dist,
-                            screen_w = screen_w,
-                            screen_h = screen_h,
-                            player_sx = psx,
-                            player_sy = psy,
-                            has_player_screen = has_player_screen,
-                        }
-                    end
+                    raw_candidates[#raw_candidates + 1] = {
+                        dx = dx,
+                        dy = dy,
+                        dist = dist,
+                        angle = GetDirectionAngle(dx, dy),
+                        screen_w = screen_w,
+                        screen_h = screen_h,
+                        player_sx = psx,
+                        player_sy = psy,
+                        has_player_screen = has_player_screen,
+                    }
                 end
             end
         end
     end
 
-    return candidates
+    table.sort(raw_candidates, function(a, b)
+        return a.dist < b.dist
+    end)
+
+    for _, candidate in ipairs(raw_candidates) do
+        local blocked = false
+        for _, picked in ipairs(filtered_candidates) do
+            if math.abs(NormalizeAngle(candidate.angle - picked.angle)) < MIN_ANGLE_SEPARATION then
+                blocked = true
+                break
+            end
+        end
+
+        if not blocked then
+            filtered_candidates[#filtered_candidates + 1] = candidate
+            if #filtered_candidates >= MAX_ARROWS then
+                break
+            end
+        end
+    end
+
+    return filtered_candidates
 end
 
 function FlowerRayWidget:Refresh()
@@ -176,7 +196,7 @@ function FlowerRayWidget:Refresh()
     local flowers = self:CollectFlowers(player)
 
     local moved_root = false
-    for i = 1, 8 do
+    for i = 1, MAX_ARROWS do
         local data = flowers[i]
         local arrow = self.arrows[i]
 
@@ -190,7 +210,7 @@ function FlowerRayWidget:Refresh()
             local ux = data.dx / len
             local uy = data.dy / len
 
-            arrow:SetString(string.format("%s %.0f", ARROW_CHARS[i], data.dist))
+            arrow:SetString(string.format("%s %.0f", ARROW_CHAR, data.dist))
             arrow:SetPosition(ux * RING_RADIUS, uy * RING_RADIUS, 0)
             arrow:Show()
         else

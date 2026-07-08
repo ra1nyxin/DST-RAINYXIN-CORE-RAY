@@ -8,6 +8,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 纯客户端生效，服务器和房主不需要安装。
 - 会在你人物附近显示文字箭头，指向附近地面上的花。
 - 箭头会按方向分散显示，并附带大致距离，方便更快找到花。
+- 现在探测范围更大，刷新更快，方向显示也更密一些。
 
 补充说明：
 - 这是 CORE 项目的第一个功能，后续会继续往实用辅助方向扩展。
@@ -22,6 +23,7 @@ Current features:
 - This is a client-only mod, so the server and host do not need to install it.
 - It shows local text arrows around your character that point toward nearby flowers on the ground.
 - The arrows spread by direction and include rough distance to make flowers easier to find.
+- The scan radius is larger, updates are faster, and the direction display is denser.
 
 Notes:
 - This is the first feature in the CORE project, with more practical helper utilities planned later.

@@ -6,14 +6,14 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 
 当前功能：
 - 纯客户端生效，服务器和房主不需要安装。
-- 会在你人物附近显示文字箭头，指向附近地面上的花。
-- 箭头会按方向分散显示，并附带大致距离，方便更快找到花。
-- 现在探测范围更远，刷新稍微放缓了一点，整套显示也缩小了一档。
+- 会在你人物附近显示文字指引，当前包括花和试金石。
+- 每条指引会按方向分散显示，并附带大致距离。
+- 现在统一按 `100` 范围探测，整套显示也再缩小了一档。
 
 补充说明：
 - 这是 CORE 项目的第一个功能，后续会继续往实用辅助方向扩展。
 - 当前只做本地 HUD 指引，不改服务器实体，不影响其他玩家。
-- 当前主要追踪附近常见地面花。
+- 当前主要追踪附近常见地面花和试金石。
 - 已修正首版 clientOnly 子脚本严格模式坏加载问题。
 - 当前版本没有做外部配置文件开关。
 
@@ -21,13 +21,13 @@ English
 
 Current features:
 - This is a client-only mod, so the server and host do not need to install it.
-- It shows local text arrows around your character that point toward nearby flowers on the ground.
-- The arrows spread by direction and include rough distance to make flowers easier to find.
-- The scan radius is much larger, updates are slightly calmer, and the whole indicator set is scaled down a bit.
+- It shows local text markers around your character for nearby flowers and Touch Stones.
+- Each marker spreads by direction and includes rough distance text.
+- The scan radius is uniformly set to `100`, and the whole indicator set is scaled down again.
 
 Notes:
 - This is the first feature in the CORE project, with more practical helper utilities planned later.
 - The current implementation is HUD-only on your client and does not modify server-side entities or affect other players.
-- It currently focuses on nearby common ground flowers.
+- It currently focuses on nearby common ground flowers and Touch Stones.
 - The initial strict-mode client-only loading issue has been fixed.
 - There are no external configuration options in this version.

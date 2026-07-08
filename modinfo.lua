@@ -3,13 +3,13 @@ description = [[
 Client-only survival helper utilities focused on guidance, convenience, and lower-friction play.
 
 Current features:
-- Nearby ground flowers are highlighted with local arrow indicators around your character.
+- Nearby flowers and Touch Stones are highlighted with local text indicators around your character.
 - The indicators are rendered only on your own client.
 - The server and host do not need to install this mod.
-- Flower guidance now scans a much larger area, uses a slightly calmer refresh rate, and displays smaller local indicators.
+- The guidance scans a large area, keeps distance text, and now uses smaller text labels instead of arrows.
 ]]
 author = "ra1nyxin"
-version = "0.1.3"
+version = "0.1.4"
 
 forumthread = ""
 api_version = 10
@@ -28,4 +28,5 @@ server_filter_tags = {
     "helper",
     "flower",
     "guide",
+    "touch stone",
 }

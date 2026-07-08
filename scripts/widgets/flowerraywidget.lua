@@ -5,19 +5,21 @@ local Text = require("widgets/text")
 
 local UPDATE_INTERVAL = 0.1
 local SEARCH_RADIUS = 100
-local RING_RADIUS = 92
-local PLAYER_SCREEN_Y_OFFSET = 28
-local MAX_ARROWS = 12
+local RING_RADIUS = 82
+local PLAYER_SCREEN_Y_OFFSET = 24
+local MAX_LABELS = 12
 local MIN_ANGLE_SEPARATION = 12 * (_G.DEGREES or (math.pi / 180))
-local ARROW_FONT_SIZE = 20
-local FLOWER_PREFABS = {
-    flower = true,
-    flower_evil = true,
-    flower_rose = true,
-}
+local LABEL_FONT_SIZE = 17
 local FLOWER_MUST_TAGS = { "pickable" }
 local FLOWER_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
-local ARROW_CHAR = "\226\150\178"
+local TOUCHSTONE_MUST_TAGS = { "resurrector" }
+local TOUCHSTONE_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
+local TARGET_PREFABS = {
+    flower = { label = "花", color = { 1, 0.95, 0.3, 0.95 } },
+    flower_evil = { label = "花", color = { 1, 0.8, 0.3, 0.95 } },
+    flower_rose = { label = "花", color = { 1, 0.7, 0.85, 0.95 } },
+    resurrectionstone = { label = "试金石", color = { 0.7, 0.95, 1, 0.95 } },
+}
 
 local TWO_PI = math.pi * 2
 local DEGREES = _G.DEGREES or (math.pi / 180)
@@ -76,7 +78,7 @@ local FlowerRayWidget = Class(Widget, function(self, owner)
 
     self.owner = owner
     self.elapsed = 0
-    self.arrows = {}
+    self.labels = {}
 
     if self.SetHAnchor ~= nil then
         self:SetHAnchor(_G.ANCHOR_MIDDLE)
@@ -88,19 +90,18 @@ local FlowerRayWidget = Class(Widget, function(self, owner)
         self:SetScaleMode(_G.SCALEMODE_PROPORTIONAL)
     end
 
-    for i = 1, MAX_ARROWS do
-        local arrow = self:AddChild(Text(_G.CHATFONT, ARROW_FONT_SIZE, ""))
-        arrow:SetColour(1, 0.95, 0.3, 0.95)
-        arrow:Hide()
-        self.arrows[i] = arrow
+    for i = 1, MAX_LABELS do
+        local label = self:AddChild(Text(_G.CHATFONT, LABEL_FONT_SIZE, ""))
+        label:Hide()
+        self.labels[i] = label
     end
 
     self:StartUpdating()
 end)
 
 function FlowerRayWidget:HideAll()
-    for i = 1, #self.arrows do
-        self.arrows[i]:Hide()
+    for i = 1, #self.labels do
+        self.labels[i]:Hide()
     end
 end
 
@@ -111,20 +112,13 @@ function FlowerRayWidget:GetTrackedPlayer()
     return _G.ThePlayer
 end
 
-function FlowerRayWidget:CollectFlowers(player)
+function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents, screen_w, screen_h, psx, psy, has_player_screen)
     local px, py, pz = player.Transform:GetWorldPosition()
-    local raw_candidates = {}
-    local filtered_candidates = {}
-    local ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, FLOWER_MUST_TAGS, FLOWER_CANT_TAGS)
-
-    local psx, psy, has_player_screen = GetScreenPoint(px, py, pz)
-    local screen_w, screen_h = 0, 0
-    if _G.TheSim ~= nil and _G.TheSim.GetScreenSize ~= nil then
-        screen_w, screen_h = _G.TheSim:GetScreenSize()
-    end
 
     for _, ent in ipairs(ents) do
-        if ent ~= nil and ent:IsValid() and FLOWER_PREFABS[ent.prefab] then
+        local target = ent ~= nil and ent:IsValid() and TARGET_PREFABS[ent.prefab] or nil
+        if target ~= nil and not seen_guids[ent.GUID] then
+            seen_guids[ent.GUID] = true
             local fx, fy, fz = ent.Transform:GetWorldPosition()
             local world_dx = fx - px
             local world_dz = fz - pz
@@ -146,24 +140,46 @@ function FlowerRayWidget:CollectFlowers(player)
 
                 local len_sq = dx * dx + dy * dy
                 if len_sq > 1 then
-                    local dist = math.sqrt(dist_sq)
                     raw_candidates[#raw_candidates + 1] = {
                         dx = dx,
                         dy = dy,
-                        dist = dist,
+                        dist = math.sqrt(dist_sq),
                         angle = GetDirectionAngle(dx, dy),
                         screen_w = screen_w,
                         screen_h = screen_h,
                         player_sx = psx,
                         player_sy = psy,
                         has_player_screen = has_player_screen,
+                        text = target.label,
+                        color = target.color,
                     }
                 end
             end
         end
     end
+end
+
+function FlowerRayWidget:CollectTargets(player)
+    local px, py, pz = player.Transform:GetWorldPosition()
+    local raw_candidates = {}
+    local filtered_candidates = {}
+    local seen_guids = {}
+    local flower_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, FLOWER_MUST_TAGS, FLOWER_CANT_TAGS)
+    local touchstone_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, TOUCHSTONE_MUST_TAGS, TOUCHSTONE_CANT_TAGS)
+
+    local psx, psy, has_player_screen = GetScreenPoint(px, py, pz)
+    local screen_w, screen_h = 0, 0
+    if _G.TheSim ~= nil and _G.TheSim.GetScreenSize ~= nil then
+        screen_w, screen_h = _G.TheSim:GetScreenSize()
+    end
+
+    self:AppendMatches(raw_candidates, seen_guids, player, flower_ents, screen_w, screen_h, psx, psy, has_player_screen)
+    self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
 
     table.sort(raw_candidates, function(a, b)
+        if a.dist == b.dist then
+            return a.text < b.text
+        end
         return a.dist < b.dist
     end)
 
@@ -178,7 +194,7 @@ function FlowerRayWidget:CollectFlowers(player)
 
         if not blocked then
             filtered_candidates[#filtered_candidates + 1] = candidate
-            if #filtered_candidates >= MAX_ARROWS then
+            if #filtered_candidates >= MAX_LABELS then
                 break
             end
         end
@@ -194,12 +210,12 @@ function FlowerRayWidget:Refresh()
         return
     end
 
-    local flowers = self:CollectFlowers(player)
+    local targets = self:CollectTargets(player)
 
     local moved_root = false
-    for i = 1, MAX_ARROWS do
-        local data = flowers[i]
-        local arrow = self.arrows[i]
+    for i = 1, MAX_LABELS do
+        local data = targets[i]
+        local label = self.labels[i]
 
         if data ~= nil then
             if data.has_player_screen then
@@ -211,11 +227,12 @@ function FlowerRayWidget:Refresh()
             local ux = data.dx / len
             local uy = data.dy / len
 
-            arrow:SetString(string.format("%s %.0f", ARROW_CHAR, data.dist))
-            arrow:SetPosition(ux * RING_RADIUS, uy * RING_RADIUS, 0)
-            arrow:Show()
+            label:SetColour(data.color[1], data.color[2], data.color[3], data.color[4])
+            label:SetString(string.format("%s %.0f", data.text, data.dist))
+            label:SetPosition(ux * RING_RADIUS, uy * RING_RADIUS, 0)
+            label:Show()
         else
-            arrow:Hide()
+            label:Hide()
         end
     end
 

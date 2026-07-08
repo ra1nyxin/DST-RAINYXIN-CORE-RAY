@@ -13,6 +13,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 这是 CORE 项目的第一个功能，后续会继续往实用辅助方向扩展。
 - 当前只做本地 HUD 指引，不改服务器实体，不影响其他玩家。
 - 当前主要追踪附近常见地面花。
+- 已修正首版 clientOnly 子脚本严格模式坏加载问题。
 - 当前版本没有做外部配置文件开关。
 
 English
@@ -26,4 +27,5 @@ Notes:
 - This is the first feature in the CORE project, with more practical helper utilities planned later.
 - The current implementation is HUD-only on your client and does not modify server-side entities or affect other players.
 - It currently focuses on nearby common ground flowers.
+- The initial strict-mode client-only loading issue has been fixed.
 - There are no external configuration options in this version.

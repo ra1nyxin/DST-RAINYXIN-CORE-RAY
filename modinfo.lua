@@ -8,7 +8,7 @@ Current features:
 - The server and host do not need to install this mod.
 ]]
 author = "ra1nyxin"
-version = "0.1.0"
+version = "0.1.1"
 
 forumthread = ""
 api_version = 10

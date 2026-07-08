@@ -1,4 +1,5 @@
-local _G = GLOBAL
+local _G = _G
+local Class = _G.Class
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 

@@ -3,12 +3,13 @@ local Class = _G.Class
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 
-local UPDATE_INTERVAL = 0.08
-local SEARCH_RADIUS = 30
-local RING_RADIUS = 125
-local PLAYER_SCREEN_Y_OFFSET = 36
+local UPDATE_INTERVAL = 0.1
+local SEARCH_RADIUS = 100
+local RING_RADIUS = 92
+local PLAYER_SCREEN_Y_OFFSET = 28
 local MAX_ARROWS = 12
 local MIN_ANGLE_SEPARATION = 12 * (_G.DEGREES or (math.pi / 180))
+local ARROW_FONT_SIZE = 20
 local FLOWER_PREFABS = {
     flower = true,
     flower_evil = true,
@@ -88,7 +89,7 @@ local FlowerRayWidget = Class(Widget, function(self, owner)
     end
 
     for i = 1, MAX_ARROWS do
-        local arrow = self:AddChild(Text(_G.CHATFONT, 26, ""))
+        local arrow = self:AddChild(Text(_G.CHATFONT, ARROW_FONT_SIZE, ""))
         arrow:SetColour(1, 0.95, 0.3, 0.95)
         arrow:Hide()
         self.arrows[i] = arrow

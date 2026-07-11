@@ -5,19 +5,22 @@ local Text = require("widgets/text")
 
 local UPDATE_INTERVAL = 0.1
 local SEARCH_RADIUS = 100
-local RING_RADIUS = 82
-local PLAYER_SCREEN_Y_OFFSET = 24
+local RING_RADIUS = 104
+local PLAYER_SCREEN_Y_OFFSET = 28
 local MAX_LABELS = 12
 local MIN_ANGLE_SEPARATION = 12 * (_G.DEGREES or (math.pi / 180))
-local LABEL_FONT_SIZE = 17
+local LABEL_FONT_SIZE = 19
 local FLOWER_MUST_TAGS = { "pickable" }
 local FLOWER_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
+local BUTTERFLY_MUST_TAGS = { "butterfly" }
+local BUTTERFLY_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
 local TOUCHSTONE_MUST_TAGS = { "resurrector" }
 local TOUCHSTONE_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
 local TARGET_PREFABS = {
     flower = { label = "花", color = { 1, 0.95, 0.3, 0.95 } },
     flower_evil = { label = "花", color = { 1, 0.8, 0.3, 0.95 } },
     flower_rose = { label = "花", color = { 1, 0.7, 0.85, 0.95 } },
+    butterfly = { label = "蝶", color = { 1, 0.9, 0.45, 0.95 } },
     resurrectionstone = { label = "试金石", color = { 0.7, 0.95, 1, 0.95 } },
 }
 
@@ -165,6 +168,7 @@ function FlowerRayWidget:CollectTargets(player)
     local filtered_candidates = {}
     local seen_guids = {}
     local flower_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, FLOWER_MUST_TAGS, FLOWER_CANT_TAGS)
+    local butterfly_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, BUTTERFLY_MUST_TAGS, BUTTERFLY_CANT_TAGS)
     local touchstone_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, TOUCHSTONE_MUST_TAGS, TOUCHSTONE_CANT_TAGS)
 
     local psx, psy, has_player_screen = GetScreenPoint(px, py, pz)
@@ -174,6 +178,7 @@ function FlowerRayWidget:CollectTargets(player)
     end
 
     self:AppendMatches(raw_candidates, seen_guids, player, flower_ents, screen_w, screen_h, psx, psy, has_player_screen)
+    self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
 
     table.sort(raw_candidates, function(a, b)

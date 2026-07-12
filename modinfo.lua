@@ -3,13 +3,13 @@ description = [[
 Client-only survival helper utilities focused on guidance, convenience, and lower-friction play.
 
 Current features:
-- Nearby flowers, butterflies, and Touch Stones are highlighted with local text indicators around your character.
+- Nearby flowers, butterflies, players, and Touch Stones are highlighted with local text indicators around your character.
 - The indicators are rendered only on your own client.
 - The server and host do not need to install this mod.
-- The guidance scans a large area, keeps distance text, and uses local labels such as 花, 蝶, and 试金石.
+- The guidance scans a large area, keeps distance text, and uses local labels such as 花, 蝶, 人, and 试金石.
 ]]
 author = "ra1nyxin"
-version = "0.1.5"
+version = "0.1.6"
 
 forumthread = ""
 api_version = 10
@@ -28,6 +28,7 @@ server_filter_tags = {
     "helper",
     "flower",
     "butterfly",
+    "player",
     "guide",
     "touch stone",
 }

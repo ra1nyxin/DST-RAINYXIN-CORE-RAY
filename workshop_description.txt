@@ -6,30 +6,32 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 
 当前功能：
 - 纯客户端生效，服务器和房主不需要安装。
-- 会在你人物附近显示文字指引，当前包括花、蝶和试金石。
+- 会在你人物附近显示文字指引，当前包括花、蝶、人和试金石。
 - 每条指引会按方向分散显示，并附带大致距离。
 - 现在统一按 `100` 范围探测，并把提示文字圈重新放远了一点。
 
 补充说明：
 - 这是 CORE 项目的第一个功能，后续会继续往实用辅助方向扩展。
 - 当前只做本地 HUD 指引，不改服务器实体，不影响其他玩家。
-- 当前主要追踪附近常见地面花、蝴蝶和试金石。
+- 当前主要追踪附近常见地面花、蝴蝶、存活玩家和试金石。
 - 已修正首版 clientOnly 子脚本严格模式坏加载问题。
 - 当前版本没有做外部配置文件开关。
-- 当前实现主要用 `AddClassPostConstruct("screens/playerhud", ...)` 挂本地 HUD，用 `TheSim:FindEntities(...)` 查附近目标，用 `TheSim:GetScreenPos(...)` 和相机朝向做屏幕定位。
+- 当前实现主要用 `AddClassPostConstruct("screens/playerhud", ...)` 挂本地 HUD，用 `TheSim:FindEntities(...)` 分组查花/蝶/人/试金石，再用 `TheSim:GetScreenPos(...)` 和相机朝向做屏幕定位。
+- 查询结果会先按距离排序，再按最小角度间隔过滤，HUD 文本则通过 `widgets/text` 的 `Text` 绘制成“标签 + 距离”。
 
 English
 
 Current features:
 - This is a client-only mod, so the server and host do not need to install it.
-- It shows local text markers around your character for nearby flowers, butterflies, and Touch Stones.
+- It shows local text markers around your character for nearby flowers, butterflies, players, and Touch Stones.
 - Each marker spreads by direction and includes rough distance text.
 - The scan radius is uniformly set to `100`, and the marker ring is pushed a bit farther away again.
 
 Notes:
 - This is the first feature in the CORE project, with more practical helper utilities planned later.
 - The current implementation is HUD-only on your client and does not modify server-side entities or affect other players.
-- It currently focuses on nearby common ground flowers, butterflies, and Touch Stones.
+- It currently focuses on nearby common ground flowers, butterflies, living players, and Touch Stones.
 - The initial strict-mode client-only loading issue has been fixed.
 - There are no external configuration options in this version.
-- The current implementation mainly uses `AddClassPostConstruct("screens/playerhud", ...)`, `TheSim:FindEntities(...)`, `TheSim:GetScreenPos(...)`, and camera heading fallback to place the local HUD markers.
+- The current implementation mainly uses `AddClassPostConstruct("screens/playerhud", ...)`, grouped `TheSim:FindEntities(...)` lookups, `TheSim:GetScreenPos(...)`, and camera heading fallback to place the local HUD markers.
+- Results are sorted by distance, filtered by minimum angular separation, and then drawn with `widgets/text` `Text` in a simple “label + distance” format.

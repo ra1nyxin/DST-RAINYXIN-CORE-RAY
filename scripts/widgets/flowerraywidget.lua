@@ -14,8 +14,11 @@ local FLOWER_MUST_TAGS = { "pickable" }
 local FLOWER_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
 local BUTTERFLY_MUST_TAGS = { "butterfly" }
 local BUTTERFLY_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
+local PLAYER_MUST_TAGS = { "player" }
+local PLAYER_CANT_TAGS = { "INLIMBO", "playerghost", "FX", "DECOR" }
 local TOUCHSTONE_MUST_TAGS = { "resurrector" }
 local TOUCHSTONE_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
+local PLAYER_TARGET = { label = "人", color = { 1, 1, 1, 0.95 } }
 local TARGET_PREFABS = {
     flower = { label = "花", color = { 1, 0.95, 0.3, 0.95 } },
     flower_evil = { label = "花", color = { 1, 0.8, 0.3, 0.95 } },
@@ -120,6 +123,9 @@ function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents,
 
     for _, ent in ipairs(ents) do
         local target = ent ~= nil and ent:IsValid() and TARGET_PREFABS[ent.prefab] or nil
+        if target == nil and ent ~= nil and ent:HasTag("player") then
+            target = PLAYER_TARGET
+        end
         if target ~= nil and not seen_guids[ent.GUID] then
             seen_guids[ent.GUID] = true
             local fx, fy, fz = ent.Transform:GetWorldPosition()
@@ -169,6 +175,7 @@ function FlowerRayWidget:CollectTargets(player)
     local seen_guids = {}
     local flower_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, FLOWER_MUST_TAGS, FLOWER_CANT_TAGS)
     local butterfly_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, BUTTERFLY_MUST_TAGS, BUTTERFLY_CANT_TAGS)
+    local player_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, PLAYER_MUST_TAGS, PLAYER_CANT_TAGS)
     local touchstone_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, TOUCHSTONE_MUST_TAGS, TOUCHSTONE_CANT_TAGS)
 
     local psx, psy, has_player_screen = GetScreenPoint(px, py, pz)
@@ -179,6 +186,7 @@ function FlowerRayWidget:CollectTargets(player)
 
     self:AppendMatches(raw_candidates, seen_guids, player, flower_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
+    self:AppendMatches(raw_candidates, seen_guids, player, player_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
 
     table.sort(raw_candidates, function(a, b)

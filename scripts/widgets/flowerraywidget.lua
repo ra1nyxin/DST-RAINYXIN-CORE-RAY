@@ -7,8 +7,6 @@ local UPDATE_INTERVAL = 0.1
 local SEARCH_RADIUS = 100
 local RING_RADIUS = 104
 local PLAYER_SCREEN_Y_OFFSET = 28
-local MAX_LABELS = 12
-local MIN_ANGLE_SEPARATION = 12 * (_G.DEGREES or (math.pi / 180))
 local LABEL_FONT_SIZE = 19
 local FLOWER_MUST_TAGS = { "pickable" }
 local FLOWER_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
@@ -27,7 +25,6 @@ local TARGET_PREFABS = {
     resurrectionstone = { label = "试金石", color = { 0.7, 0.95, 1, 0.95 } },
 }
 
-local TWO_PI = math.pi * 2
 local DEGREES = _G.DEGREES or (math.pi / 180)
 
 local function RotateByHeading(dx, dz)
@@ -61,24 +58,6 @@ local function GetScreenPoint(x, y, z)
     return nil, nil, false
 end
 
-local function NormalizeAngle(angle)
-    while angle <= -math.pi do
-        angle = angle + TWO_PI
-    end
-    while angle > math.pi do
-        angle = angle - TWO_PI
-    end
-    return angle
-end
-
-local function GetDirectionAngle(dx, dy)
-    local angle = math.atan2(dy, dx)
-    if angle < 0 then
-        angle = angle + TWO_PI
-    end
-    return angle
-end
-
 local FlowerRayWidget = Class(Widget, function(self, owner)
     Widget._ctor(self, "FlowerRayWidget")
 
@@ -96,18 +75,20 @@ local FlowerRayWidget = Class(Widget, function(self, owner)
         self:SetScaleMode(_G.SCALEMODE_PROPORTIONAL)
     end
 
-    for i = 1, MAX_LABELS do
-        local label = self:AddChild(Text(_G.CHATFONT, LABEL_FONT_SIZE, ""))
-        label:Hide()
-        self.labels[i] = label
-    end
-
     self:StartUpdating()
 end)
 
 function FlowerRayWidget:HideAll()
     for i = 1, #self.labels do
         self.labels[i]:Hide()
+    end
+end
+
+function FlowerRayWidget:EnsureLabelCount(count)
+    while #self.labels < count do
+        local label = self:AddChild(Text(_G.CHATFONT, LABEL_FONT_SIZE, ""))
+        label:Hide()
+        self.labels[#self.labels + 1] = label
     end
 end
 
@@ -153,7 +134,6 @@ function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents,
                         dx = dx,
                         dy = dy,
                         dist = math.sqrt(dist_sq),
-                        angle = GetDirectionAngle(dx, dy),
                         screen_w = screen_w,
                         screen_h = screen_h,
                         player_sx = psx,
@@ -171,7 +151,6 @@ end
 function FlowerRayWidget:CollectTargets(player)
     local px, py, pz = player.Transform:GetWorldPosition()
     local raw_candidates = {}
-    local filtered_candidates = {}
     local seen_guids = {}
     local flower_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, FLOWER_MUST_TAGS, FLOWER_CANT_TAGS)
     local butterfly_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, BUTTERFLY_MUST_TAGS, BUTTERFLY_CANT_TAGS)
@@ -196,24 +175,7 @@ function FlowerRayWidget:CollectTargets(player)
         return a.dist < b.dist
     end)
 
-    for _, candidate in ipairs(raw_candidates) do
-        local blocked = false
-        for _, picked in ipairs(filtered_candidates) do
-            if math.abs(NormalizeAngle(candidate.angle - picked.angle)) < MIN_ANGLE_SEPARATION then
-                blocked = true
-                break
-            end
-        end
-
-        if not blocked then
-            filtered_candidates[#filtered_candidates + 1] = candidate
-            if #filtered_candidates >= MAX_LABELS then
-                break
-            end
-        end
-    end
-
-    return filtered_candidates
+    return raw_candidates
 end
 
 function FlowerRayWidget:Refresh()
@@ -224,9 +186,10 @@ function FlowerRayWidget:Refresh()
     end
 
     local targets = self:CollectTargets(player)
+    self:EnsureLabelCount(#targets)
 
     local moved_root = false
-    for i = 1, MAX_LABELS do
+    for i = 1, #targets do
         local data = targets[i]
         local label = self.labels[i]
 
@@ -244,9 +207,11 @@ function FlowerRayWidget:Refresh()
             label:SetString(string.format("%s %.0f", data.text, data.dist))
             label:SetPosition(ux * RING_RADIUS, uy * RING_RADIUS, 0)
             label:Show()
-        else
-            label:Hide()
         end
+    end
+
+    for i = #targets + 1, #self.labels do
+        self.labels[i]:Hide()
     end
 
     if not moved_root then

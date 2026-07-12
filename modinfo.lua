@@ -6,10 +6,10 @@ Current features:
 - Nearby flowers, butterflies, players, and Touch Stones are highlighted with local text indicators around your character.
 - The indicators are rendered only on your own client.
 - The server and host do not need to install this mod.
-- The guidance scans a large area, keeps distance text, and uses local labels such as 花, 蝶, 人, and 试金石.
+- The guidance scans a large area, keeps distance text, and now shows all detected labels without angle-based priority filtering.
 ]]
 author = "ra1nyxin"
-version = "0.1.6"
+version = "0.1.7"
 
 forumthread = ""
 api_version = 10

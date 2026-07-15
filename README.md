@@ -7,6 +7,7 @@
 - 现在统一按 `100` 范围探测，并且把提示文字圈重新放远了一点，避免太贴近玩家自身。
 - 多个目标现在允许直接重叠显示，不再因为优先级或角度过滤而隐藏一部分目标。
 - 额外提供本地预测的 `1.1x` 移速增强，只影响你自己客户端上的移动预测观感。
+- 额外提供一档实验性的本地交互距离微调，尝试让捡物、采集、收获、挖矿、铲挖、砍树能在稍远一点的位置开始动作。
 
 说明：
 - 这个项目后续会继续加更多实用辅助功能，目前先把“附近花朵指引”这个基础功能做稳。
@@ -14,12 +15,15 @@
 - 目前会指引附近常见地面花：`flower`、`flower_evil`、`flower_rose`，附近蝴蝶：`butterfly`，附近存活玩家：`人`，以及 `resurrectionstone` 试金石。
 - 已修正首版 clientOnly 子脚本直接依赖 `GLOBAL` 导致严格模式报错、游戏启动时坏加载的问题。
 - 当前这档移速增强走的是客户端预测，不是服务端真实移速改写；如果某些服务器环境下出现轻微回拉，这是 clientOnly 的天然边界。
+- 当前这档交互距离增强同样是 clientOnly 试验项，主要用来实测客户端动作到达距离变化在局域网或联机环境里能被服务端接受到什么程度。
 - 现在没有做外部配置文件开关。
 
 实现记录：
 - `modmain.lua` 通过 `AddClassPostConstruct("screens/playerhud", ...)` 把本地 HUD 挂件接到玩家界面上。
+- `modmain.lua` 也会先加载 `scripts/clientactionreach.lua`，在客户端直接微调部分 `ACTIONS` 的到达距离参数。
 - 目标显示逻辑集中在 `scripts/widgets/flowerraywidget.lua`。
 - 本地预测移速逻辑集中在 `scripts/widgets/clientspeedwidget.lua`。
+- 当前交互距离实验集中在 `scripts/clientactionreach.lua`，其中对 `PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加少量 `extra_arrive_dist`，并把 `CHOP.distance` 从原版基础上略微抬高。
 - 附近目标查询主要用 `TheSim:FindEntities(...)`，当前分成花、蝴蝶、玩家、试金石四组查询，避免半径 `100` 时裸扫太多无关实体。
 - 花走 `pickable` 标签，蝴蝶走 `butterfly` 标签，玩家走 `player` 标签并排除 `playerghost`，试金石走 `resurrector` 标签。
 - 查询结果目前只按距离做稳定排序，不再做角度过滤，也不再限制固定显示名额。
@@ -35,6 +39,7 @@ Current features:
 - The scan radius is uniformly set to `100`, and the marker ring is pushed a bit farther away from the player again.
 - Multiple targets are now allowed to overlap directly instead of being hidden by angle-based priority filtering.
 - It also adds a local predicted `1.1x` movement speed boost for your own client-side movement.
+- It also adds an experimental local interaction reach tweak for pickup, pick, harvest, mine, dig, and chop actions.
 
 Notes:
 - This project will keep growing with more practical helper features later, but the first step is making nearby flower guidance stable.
@@ -42,12 +47,15 @@ Notes:
 - The current guidance tracks nearby `flower`, `flower_evil`, `flower_rose`, `butterfly`, living players, and `resurrectionstone`.
 - The first client-only loading crash caused by directly relying on `GLOBAL` inside a required widget script has been fixed.
 - The current speed boost is prediction-only on the client rather than a true server-side movement rewrite, so minor rubber-banding can still happen on some servers.
+- The current interaction reach tweak is another client-only experiment meant to probe how far local action distance changes can still be accepted by the server.
 - There are no external configuration options in this version.
 
 Implementation notes:
 - `modmain.lua` injects the local HUD widget through `AddClassPostConstruct("screens/playerhud", ...)`.
+- `modmain.lua` also loads `scripts/clientactionreach.lua` first so a few client-side `ACTIONS` can be adjusted locally.
 - The guidance widget lives in `scripts/widgets/flowerraywidget.lua`.
 - The local predicted speed logic lives in `scripts/widgets/clientspeedwidget.lua`.
+- The current interaction reach experiment lives in `scripts/clientactionreach.lua`, adding a small `extra_arrive_dist` bump to `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG`, while nudging `CHOP.distance` slightly above vanilla.
 - Nearby target lookup mainly uses `TheSim:FindEntities(...)`, split into flowers, butterflies, players, and Touch Stones to avoid a broad unfiltered radius-100 scan.
 - Flowers use the `pickable` tag, butterflies use `butterfly`, players use `player` while excluding `playerghost`, and Touch Stones use `resurrector`.
 - Query results now keep only a stable distance-based order; there is no angle filter and no fixed display cap anymore.

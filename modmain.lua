@@ -1,3 +1,5 @@
+require("clientactionreach")
+
 local FlowerRayWidget = require("widgets/flowerraywidget")
 local ClientSpeedWidget = require("widgets/clientspeedwidget")
 

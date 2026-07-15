@@ -32,7 +32,7 @@
 - 当前交互距离实验集中在 `scripts/clientactionreach.lua`，其中对 `PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加少量 `extra_arrive_dist`，并把 `CHOP.distance` 从原版基础上略微抬高。
 - 当前这一版里，`PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加 `0.9` 的额外到达距离，`CHOP.distance` 则在原版基础上额外加 `0.6`。
 - 当前快打实验集中在 `scripts/clientattackspeed.lua`，分别对 `combat_replica` 的本地最小攻击周期判断、`playercontroller` 的攻击按钮重复节流，以及 `wilson_client.attack` 的本地状态超时做了同步边界试探。
-- 当前这一版里，移速增强调整为 `1.05x`，快打实验则把本地最小攻击周期和本地攻击状态超时都压到原值的 `85%`，并把攻击按钮重复冷却压到 `0.15` 秒。
+- 当前这一版里，移速增强调整为 `1.05x`，快打实验则把本地最小攻击周期和本地攻击状态超时都压到原值的 `70%`，并把攻击按钮重复冷却压到 `0.08` 秒。
 - 现在对 `AddStategraphPostInit` 的处理已经进一步收紧为 `rawget(_G, "AddStategraphPostInit")` 加局部别名，再调用时不直接碰顶层全局名。
 - 附近目标查询主要用 `TheSim:FindEntities(...)`，当前分成花、蝴蝶、玩家、试金石四组查询，避免半径 `100` 时裸扫太多无关实体。
 - 花走 `pickable` 标签，蝴蝶走 `butterfly` 标签，玩家走 `player` 标签并排除 `playerghost`，试金石走 `resurrector` 标签。
@@ -74,7 +74,7 @@ Implementation notes:
 - The current interaction reach experiment lives in `scripts/clientactionreach.lua`, adding a small `extra_arrive_dist` bump to `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG`, while nudging `CHOP.distance` slightly above vanilla.
 - In the current build, `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG` each get an extra `0.9` arrive-distance bump, while `CHOP.distance` is increased by `0.6` over vanilla.
 - The current faster-attack experiment lives in `scripts/clientattackspeed.lua`, patching local `combat_replica` cooldown checks, `playercontroller` attack-button repeat throttling, and `wilson_client.attack` timeout length.
-- In the current build, the move speed boost is tuned to `1.05x`, while the faster-attack experiment scales local attack cooldown and local attack-state timeout to `85%` and lowers attack-button repeat cooldown to `0.15` seconds.
+- In the current build, the move speed boost is tuned to `1.05x`, while the faster-attack experiment scales local attack cooldown and local attack-state timeout to `70%` and lowers attack-button repeat cooldown to `0.08` seconds.
 - This has now been hardened further by resolving `AddStategraphPostInit` through `rawget(_G, "AddStategraphPostInit")` before binding a local alias, avoiding another undeclared-global crash during strict client-only loading.
 - Nearby target lookup mainly uses `TheSim:FindEntities(...)`, split into flowers, butterflies, players, and Touch Stones to avoid a broad unfiltered radius-100 scan.
 - Flowers use the `pickable` tag, butterflies use `butterfly`, players use `player` while excluding `playerghost`, and Touch Stones use `resurrector`.

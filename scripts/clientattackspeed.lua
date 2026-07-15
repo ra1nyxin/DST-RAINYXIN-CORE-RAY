@@ -1,9 +1,9 @@
 local _G = _G
 local add_stategraph_post_init = rawget(_G, "AddStategraphPostInit")
 
-local ATTACK_PERIOD_MULT = 0.85
-local ATTACK_TIMEOUT_MULT = 0.85
-local ATTACK_BUTTON_REPEAT_COOLDOWN = 0.15
+local ATTACK_PERIOD_MULT = 0.7
+local ATTACK_TIMEOUT_MULT = 0.7
+local ATTACK_BUTTON_REPEAT_COOLDOWN = 0.08
 
 local function IsLocalPlayer(inst)
     return inst ~= nil and inst == _G.ThePlayer

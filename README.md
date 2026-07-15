@@ -20,6 +20,7 @@
 - 当前这档实验值已经继续上调一档，优先让“手变长”的体感更明显，再观察是否开始碰到服务端回拉或拒绝执行的边界。
 - 当前这档快打增强也是 clientOnly 边界试验，目标是尝试更早发出下一次攻击请求，看看服务端会接受到什么程度。
 - 已记录：`scripts/clientattackspeed.lua` 曾因在 strict 环境里裸用 `AddStategraphPostInit` 这个全局名，导致 modmain 加载阶段直接报“variable is not declared”并中断启动。
+- 已记录：即使改成 `_G.AddStategraphPostInit` 这种顶层字段访问，仍然可能在 strict 环境入口阶段触发同类报错；更稳的写法是 `rawget(_G, "AddStategraphPostInit")` 后再落局部别名。
 - 现在没有做外部配置文件开关。
 
 实现记录：
@@ -32,7 +33,7 @@
 - 当前这一版里，`PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加 `0.9` 的额外到达距离，`CHOP.distance` 则在原版基础上额外加 `0.6`。
 - 当前快打实验集中在 `scripts/clientattackspeed.lua`，分别对 `combat_replica` 的本地最小攻击周期判断、`playercontroller` 的攻击按钮重复节流，以及 `wilson_client.attack` 的本地状态超时做了同步边界试探。
 - 当前这一版里，移速增强调整为 `1.05x`，快打实验则把本地最小攻击周期和本地攻击状态超时都压到原值的 `85%`，并把攻击按钮重复冷却压到 `0.15` 秒。
-- 已把 `AddStategraphPostInit` 收成本地别名后再调用，避免再次踩到 clientOnly 严格模式下的未声明全局崩溃。
+- 现在对 `AddStategraphPostInit` 的处理已经进一步收紧为 `rawget(_G, "AddStategraphPostInit")` 加局部别名，再调用时不直接碰顶层全局名。
 - 附近目标查询主要用 `TheSim:FindEntities(...)`，当前分成花、蝴蝶、玩家、试金石四组查询，避免半径 `100` 时裸扫太多无关实体。
 - 花走 `pickable` 标签，蝴蝶走 `butterfly` 标签，玩家走 `player` 标签并排除 `playerghost`，试金石走 `resurrector` 标签。
 - 查询结果目前只按距离做稳定排序，不再做角度过滤，也不再限制固定显示名额。
@@ -61,6 +62,7 @@ Notes:
 - The current experiment values have been pushed a bit farther so the reach increase is easier to feel before checking where server-side rejection or rubber-banding starts.
 - The current faster-attack tweak is another client-only boundary experiment focused on sending the next attack request earlier.
 - Recorded issue: `scripts/clientattackspeed.lua` previously used the global name `AddStategraphPostInit` directly under strict mode, which caused mod loading to abort before startup finished.
+- Recorded issue: even changing that top-level access to `_G.AddStategraphPostInit` can still be too brittle during strict client-only startup, so `rawget(_G, "AddStategraphPostInit")` is the safer pattern.
 - There are no external configuration options in this version.
 
 Implementation notes:
@@ -73,7 +75,7 @@ Implementation notes:
 - In the current build, `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG` each get an extra `0.9` arrive-distance bump, while `CHOP.distance` is increased by `0.6` over vanilla.
 - The current faster-attack experiment lives in `scripts/clientattackspeed.lua`, patching local `combat_replica` cooldown checks, `playercontroller` attack-button repeat throttling, and `wilson_client.attack` timeout length.
 - In the current build, the move speed boost is tuned to `1.05x`, while the faster-attack experiment scales local attack cooldown and local attack-state timeout to `85%` and lowers attack-button repeat cooldown to `0.15` seconds.
-- This has now been hardened by resolving `AddStategraphPostInit` into a local alias before use, avoiding another undeclared-global crash during strict client-only loading.
+- This has now been hardened further by resolving `AddStategraphPostInit` through `rawget(_G, "AddStategraphPostInit")` before binding a local alias, avoiding another undeclared-global crash during strict client-only loading.
 - Nearby target lookup mainly uses `TheSim:FindEntities(...)`, split into flowers, butterflies, players, and Touch Stones to avoid a broad unfiltered radius-100 scan.
 - Flowers use the `pickable` tag, butterflies use `butterfly`, players use `player` while excluding `playerghost`, and Touch Stones use `resurrector`.
 - Query results now keep only a stable distance-based order; there is no angle filter and no fixed display cap anymore.

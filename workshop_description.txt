@@ -25,6 +25,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 当前这档实验值已经继续上调一档，优先让“手变长”的体感更明显，再观察是否开始碰到服务端回拉或拒绝执行的边界。
 - 当前这档快打增强也是 clientOnly 边界试验，目标是尝试更早发出下一次攻击请求，看看服务端会接受到什么程度。
 - 已记录：`scripts/clientattackspeed.lua` 曾因在 strict 环境里裸用 `AddStategraphPostInit` 这个全局名，导致 modmain 加载阶段直接报“variable is not declared”并中断启动。
+- 已记录：即使改成 `_G.AddStategraphPostInit` 这种顶层字段访问，仍然可能在 strict 环境入口阶段触发同类报错；更稳的写法是 `rawget(_G, "AddStategraphPostInit")` 后再落局部别名。
 - 当前实现主要用 `AddClassPostConstruct("screens/playerhud", ...)` 挂本地 HUD，用 `TheSim:FindEntities(...)` 分组查花/蝶/人/试金石，再用 `TheSim:GetScreenPos(...)` 和相机朝向做屏幕定位。
 - 查询结果现在只做距离排序，不再做角度过滤或固定名额裁剪；HUD 文本则通过 `widgets/text` 的 `Text` 绘制成“标签 + 距离”。
 - 当前移速增强通过 `playerspeedmult:SetPredictedSpeedMult(...)` 挂一个固定来源键实现。
@@ -32,7 +33,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 当前这一版里，`PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加 `0.9` 的额外到达距离，`CHOP.distance` 则在原版基础上额外加 `0.6`。
 - 当前快打实验则直接在客户端本地压低 `combat_replica` 的最小攻击周期判断、降低攻击按钮重复节流，并缩短 `wilson_client.attack` 的本地超时。
 - 当前这一版里，移速增强调整为 `1.05x`，快打实验则把本地最小攻击周期和本地攻击状态超时都压到原值的 `85%`，并把攻击按钮重复冷却压到 `0.15` 秒。
-- 已把 `AddStategraphPostInit` 收成本地别名后再调用，避免再次踩到 clientOnly 严格模式下的未声明全局崩溃。
+- 现在对 `AddStategraphPostInit` 的处理已经进一步收紧为 `rawget(_G, "AddStategraphPostInit")` 加局部别名，再调用时不直接碰顶层全局名。
 
 English
 
@@ -57,6 +58,7 @@ Notes:
 - The current experiment values have been pushed a bit farther so the reach increase is easier to feel before checking where server-side rejection or rubber-banding starts.
 - The current faster-attack tweak is another client-only boundary experiment focused on sending the next attack request earlier.
 - Recorded issue: `scripts/clientattackspeed.lua` previously used the global name `AddStategraphPostInit` directly under strict mode, which caused mod loading to abort before startup finished.
+- Recorded issue: even changing that top-level access to `_G.AddStategraphPostInit` can still be too brittle during strict client-only startup, so `rawget(_G, "AddStategraphPostInit")` is the safer pattern.
 - The current implementation mainly uses `AddClassPostConstruct("screens/playerhud", ...)`, grouped `TheSim:FindEntities(...)` lookups, `TheSim:GetScreenPos(...)`, and camera heading fallback to place the local HUD markers.
 - Results now keep a stable distance-based order only, without angle filtering or a fixed display cap, and are then drawn with `widgets/text` `Text` in a simple “label + distance” format.
 - The current speed boost is implemented through `playerspeedmult:SetPredictedSpeedMult(...)` with a fixed local source key.
@@ -64,4 +66,4 @@ Notes:
 - In the current build, `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG` each get an extra `0.9` arrive-distance bump, while `CHOP.distance` is increased by `0.6` over vanilla.
 - The faster-attack experiment locally patches `combat_replica` cooldown checks, `playercontroller` attack-button repeat throttling, and `wilson_client.attack` timeout length.
 - In the current build, the move speed boost is tuned to `1.05x`, while the faster-attack experiment scales local attack cooldown and local attack-state timeout to `85%` and lowers attack-button repeat cooldown to `0.15` seconds.
-- This has now been hardened by resolving `AddStategraphPostInit` into a local alias before use, avoiding another undeclared-global crash during strict client-only loading.
+- This has now been hardened further by resolving `AddStategraphPostInit` through `rawget(_G, "AddStategraphPostInit")` before binding a local alias, avoiding another undeclared-global crash during strict client-only loading.

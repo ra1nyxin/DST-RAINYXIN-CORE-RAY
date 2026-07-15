@@ -15,7 +15,7 @@ Current features:
 - The faster-attack tweak is another sync-boundary experiment and may still be limited by server-side combat timing.
 ]]
 author = "ra1nyxin"
-version = "0.1.14"
+version = "0.1.15"
 
 forumthread = ""
 api_version = 10

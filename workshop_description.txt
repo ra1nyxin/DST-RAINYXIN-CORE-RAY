@@ -10,6 +10,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 每条指引会按方向分散显示，并附带大致距离。
 - 现在统一按 `100` 范围探测，并把提示文字圈重新放远了一点。
 - 多个目标现在允许直接重叠显示，不再因为优先级或角度过滤而漏掉目标。
+- 额外提供本地预测的 `1.1x` 移速增强，只影响你自己客户端上的移动预测。
 
 补充说明：
 - 这是 CORE 项目的第一个功能，后续会继续往实用辅助方向扩展。
@@ -17,8 +18,10 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 当前主要追踪附近常见地面花、蝴蝶、存活玩家和试金石。
 - 已修正首版 clientOnly 子脚本严格模式坏加载问题。
 - 当前版本没有做外部配置文件开关。
+- 当前这档移速增强走的是客户端预测，不是服务端真实移速改写。
 - 当前实现主要用 `AddClassPostConstruct("screens/playerhud", ...)` 挂本地 HUD，用 `TheSim:FindEntities(...)` 分组查花/蝶/人/试金石，再用 `TheSim:GetScreenPos(...)` 和相机朝向做屏幕定位。
 - 查询结果现在只做距离排序，不再做角度过滤或固定名额裁剪；HUD 文本则通过 `widgets/text` 的 `Text` 绘制成“标签 + 距离”。
+- 本地移速增强则通过 `playerspeedmult:SetPredictedSpeedMult(...)` 只给本机玩家挂预测移速倍率。
 
 English
 
@@ -28,6 +31,7 @@ Current features:
 - Each marker spreads by direction and includes rough distance text.
 - The scan radius is uniformly set to `100`, and the marker ring is pushed a bit farther away again.
 - Multiple targets are now allowed to overlap directly instead of being hidden by angle-based priority filtering.
+- It also adds a local predicted `1.1x` movement speed boost for your own client-side movement.
 
 Notes:
 - This is the first feature in the CORE project, with more practical helper utilities planned later.
@@ -35,5 +39,7 @@ Notes:
 - It currently focuses on nearby common ground flowers, butterflies, living players, and Touch Stones.
 - The initial strict-mode client-only loading issue has been fixed.
 - There are no external configuration options in this version.
+- The speed boost is prediction-only on the client rather than a true server-side movement rewrite.
 - The current implementation mainly uses `AddClassPostConstruct("screens/playerhud", ...)`, grouped `TheSim:FindEntities(...)` lookups, `TheSim:GetScreenPos(...)`, and camera heading fallback to place the local HUD markers.
 - Results now keep a stable distance-based order only, without angle filtering or a fixed display cap, and are then drawn with `widgets/text` `Text` in a simple “label + distance” format.
+- The predicted speed boost is attached locally through `playerspeedmult:SetPredictedSpeedMult(...)` on the local player only.

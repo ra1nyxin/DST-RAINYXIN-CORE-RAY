@@ -5,12 +5,12 @@ if ACTIONS == nil then
     return
 end
 
-local EXTRA_PICKUP_REACH = 0.5
-local EXTRA_PICK_REACH = 0.5
-local EXTRA_HARVEST_REACH = 0.5
-local EXTRA_MINE_REACH = 0.5
-local EXTRA_DIG_REACH = 0.5
-local EXTRA_CHOP_DISTANCE = 0.35
+local EXTRA_PICKUP_REACH = 0.9
+local EXTRA_PICK_REACH = 0.9
+local EXTRA_HARVEST_REACH = 0.9
+local EXTRA_MINE_REACH = 0.9
+local EXTRA_DIG_REACH = 0.9
+local EXTRA_CHOP_DISTANCE = 0.6
 
 local function SafeCall(fn, ...)
     if fn == nil then

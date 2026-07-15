@@ -16,6 +16,7 @@
 - 已修正首版 clientOnly 子脚本直接依赖 `GLOBAL` 导致严格模式报错、游戏启动时坏加载的问题。
 - 当前这档移速增强走的是客户端预测，不是服务端真实移速改写；如果某些服务器环境下出现轻微回拉，这是 clientOnly 的天然边界。
 - 当前这档交互距离增强同样是 clientOnly 试验项，主要用来实测客户端动作到达距离变化在局域网或联机环境里能被服务端接受到什么程度。
+- 当前这档实验值已经继续上调一档，优先让“手变长”的体感更明显，再观察是否开始碰到服务端回拉或拒绝执行的边界。
 - 现在没有做外部配置文件开关。
 
 实现记录：
@@ -24,6 +25,7 @@
 - 目标显示逻辑集中在 `scripts/widgets/flowerraywidget.lua`。
 - 本地预测移速逻辑集中在 `scripts/widgets/clientspeedwidget.lua`。
 - 当前交互距离实验集中在 `scripts/clientactionreach.lua`，其中对 `PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加少量 `extra_arrive_dist`，并把 `CHOP.distance` 从原版基础上略微抬高。
+- 当前这一版里，`PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加 `0.9` 的额外到达距离，`CHOP.distance` 则在原版基础上额外加 `0.6`。
 - 附近目标查询主要用 `TheSim:FindEntities(...)`，当前分成花、蝴蝶、玩家、试金石四组查询，避免半径 `100` 时裸扫太多无关实体。
 - 花走 `pickable` 标签，蝴蝶走 `butterfly` 标签，玩家走 `player` 标签并排除 `playerghost`，试金石走 `resurrector` 标签。
 - 查询结果目前只按距离做稳定排序，不再做角度过滤，也不再限制固定显示名额。
@@ -48,6 +50,7 @@ Notes:
 - The first client-only loading crash caused by directly relying on `GLOBAL` inside a required widget script has been fixed.
 - The current speed boost is prediction-only on the client rather than a true server-side movement rewrite, so minor rubber-banding can still happen on some servers.
 - The current interaction reach tweak is another client-only experiment meant to probe how far local action distance changes can still be accepted by the server.
+- The current experiment values have been pushed a bit farther so the reach increase is easier to feel before checking where server-side rejection or rubber-banding starts.
 - There are no external configuration options in this version.
 
 Implementation notes:
@@ -56,6 +59,7 @@ Implementation notes:
 - The guidance widget lives in `scripts/widgets/flowerraywidget.lua`.
 - The local predicted speed logic lives in `scripts/widgets/clientspeedwidget.lua`.
 - The current interaction reach experiment lives in `scripts/clientactionreach.lua`, adding a small `extra_arrive_dist` bump to `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG`, while nudging `CHOP.distance` slightly above vanilla.
+- In the current build, `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG` each get an extra `0.9` arrive-distance bump, while `CHOP.distance` is increased by `0.6` over vanilla.
 - Nearby target lookup mainly uses `TheSim:FindEntities(...)`, split into flowers, butterflies, players, and Touch Stones to avoid a broad unfiltered radius-100 scan.
 - Flowers use the `pickable` tag, butterflies use `butterfly`, players use `player` while excluding `playerghost`, and Touch Stones use `resurrector`.
 - Query results now keep only a stable distance-based order; there is no angle filter and no fixed display cap anymore.

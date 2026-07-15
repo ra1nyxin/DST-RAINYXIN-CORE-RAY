@@ -21,10 +21,12 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 当前版本没有做外部配置文件开关。
 - 当前这档移速增强走的是客户端预测，不是服务端真实移速改写。
 - 当前这档交互距离增强同样是 clientOnly 试验项，主要用来实测客户端动作到达距离变化在联机场景里的接受边界。
+- 当前这档实验值已经继续上调一档，优先让“手变长”的体感更明显，再观察是否开始碰到服务端回拉或拒绝执行的边界。
 - 当前实现主要用 `AddClassPostConstruct("screens/playerhud", ...)` 挂本地 HUD，用 `TheSim:FindEntities(...)` 分组查花/蝶/人/试金石，再用 `TheSim:GetScreenPos(...)` 和相机朝向做屏幕定位。
 - 查询结果现在只做距离排序，不再做角度过滤或固定名额裁剪；HUD 文本则通过 `widgets/text` 的 `Text` 绘制成“标签 + 距离”。
 - 本地移速增强则通过 `playerspeedmult:SetPredictedSpeedMult(...)` 只给本机玩家挂预测移速倍率。
 - 本地交互距离实验则直接在客户端给 `PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 追加少量 `extra_arrive_dist`，并把 `CHOP.distance` 略微抬高。
+- 当前这一版里，`PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加 `0.9` 的额外到达距离，`CHOP.distance` 则在原版基础上额外加 `0.6`。
 
 English
 
@@ -45,7 +47,9 @@ Notes:
 - There are no external configuration options in this version.
 - The speed boost is prediction-only on the client rather than a true server-side movement rewrite.
 - The interaction reach tweak is another client-only experiment focused on probing the acceptance boundary of local action-distance changes in multiplayer.
+- The current experiment values have been pushed a bit farther so the reach increase is easier to feel before checking where server-side rejection or rubber-banding starts.
 - The current implementation mainly uses `AddClassPostConstruct("screens/playerhud", ...)`, grouped `TheSim:FindEntities(...)` lookups, `TheSim:GetScreenPos(...)`, and camera heading fallback to place the local HUD markers.
 - Results now keep a stable distance-based order only, without angle filtering or a fixed display cap, and are then drawn with `widgets/text` `Text` in a simple “label + distance” format.
 - The predicted speed boost is attached locally through `playerspeedmult:SetPredictedSpeedMult(...)` on the local player only.
 - The interaction reach experiment locally bumps `extra_arrive_dist` for `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG`, while slightly increasing `CHOP.distance`.
+- In the current build, `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG` each get an extra `0.9` arrive-distance bump, while `CHOP.distance` is increased by `0.6` over vanilla.

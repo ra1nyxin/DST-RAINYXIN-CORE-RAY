@@ -13,7 +13,7 @@ Current features:
 - The interaction reach tweak is also experimental and mainly intended to probe how far client-side action distance changes can still be accepted by the server.
 ]]
 author = "ra1nyxin"
-version = "0.1.11"
+version = "0.1.12"
 
 forumthread = ""
 api_version = 10

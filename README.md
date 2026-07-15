@@ -6,7 +6,7 @@
 - 每条指引都会按方向分散显示，并附带大致距离。
 - 现在统一按 `100` 范围探测，并且把提示文字圈重新放远了一点，避免太贴近玩家自身。
 - 多个目标现在允许直接重叠显示，不再因为优先级或角度过滤而隐藏一部分目标。
-- 额外提供本地预测的 `1.1x` 移速增强，只影响你自己客户端上的移动预测观感。
+- 额外提供本地预测的 `1.2x` 移速增强，只影响你自己客户端上的移动预测观感。
 
 说明：
 - 这个项目后续会继续加更多实用辅助功能，目前先把“附近花朵指引”这个基础功能做稳。
@@ -34,7 +34,7 @@ Current features:
 - Each marker spreads by direction and includes rough distance text.
 - The scan radius is uniformly set to `100`, and the marker ring is pushed a bit farther away from the player again.
 - Multiple targets are now allowed to overlap directly instead of being hidden by angle-based priority filtering.
-- It also adds a local predicted `1.1x` movement speed boost for your own client-side movement.
+- It also adds a local predicted `1.2x` movement speed boost for your own client-side movement.
 
 Notes:
 - This project will keep growing with more practical helper features later, but the first step is making nearby flower guidance stable.

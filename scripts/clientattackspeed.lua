@@ -1,4 +1,5 @@
 local _G = _G
+local AddStategraphPostInit = _G.AddStategraphPostInit
 
 local ATTACK_PERIOD_MULT = 0.85
 local ATTACK_TIMEOUT_MULT = 0.85
@@ -77,4 +78,6 @@ local function PatchAttackState(sg)
     end
 end
 
-_G.AddStategraphPostInit("wilson_client", PatchAttackState)
+if AddStategraphPostInit ~= nil then
+    AddStategraphPostInit("wilson_client", PatchAttackState)
+end

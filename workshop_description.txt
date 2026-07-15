@@ -10,7 +10,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 每条指引会按方向分散显示，并附带大致距离。
 - 现在统一按 `100` 范围探测，并把提示文字圈重新放远了一点。
 - 多个目标现在允许直接重叠显示，不再因为优先级或角度过滤而漏掉目标。
-- 额外提供本地预测的 `1.05x` 移速增强，只影响你自己客户端上的移动预测。
+- 额外提供 `1.05x` 移速增强。
 - 额外提供一档实验性的本地交互距离微调，尝试让捡物、采集、收获、挖矿、铲挖、砍树能在稍远一点的位置开始动作。
 - 额外提供一档实验性的本地快打增强，尝试让普通攻击更早进入下一次真实攻击输入循环。
 
@@ -20,17 +20,19 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 当前主要追踪附近常见地面花、蝴蝶、存活玩家和试金石。
 - 已修正首版 clientOnly 子脚本严格模式坏加载问题。
 - 当前版本没有做外部配置文件开关。
-- 当前这档移速增强走的是客户端预测，不是服务端真实移速改写。
+- 当前这档移速增强属于 clientOnly 实现，在部分联机场景下仍可能碰到同步边界或轻微回拉。
 - 当前这档交互距离增强同样是 clientOnly 试验项，主要用来实测客户端动作到达距离变化在联机场景里的接受边界。
 - 当前这档实验值已经继续上调一档，优先让“手变长”的体感更明显，再观察是否开始碰到服务端回拉或拒绝执行的边界。
-- 当前这档快打增强也是 clientOnly 边界试验，目标不是只改观感，而是尝试更早发出下一次攻击请求，看看服务端会接受到什么程度。
+- 当前这档快打增强也是 clientOnly 边界试验，目标是尝试更早发出下一次攻击请求，看看服务端会接受到什么程度。
+- 已记录：`scripts/clientattackspeed.lua` 曾因在 strict 环境里裸用 `AddStategraphPostInit` 这个全局名，导致 modmain 加载阶段直接报“variable is not declared”并中断启动。
 - 当前实现主要用 `AddClassPostConstruct("screens/playerhud", ...)` 挂本地 HUD，用 `TheSim:FindEntities(...)` 分组查花/蝶/人/试金石，再用 `TheSim:GetScreenPos(...)` 和相机朝向做屏幕定位。
 - 查询结果现在只做距离排序，不再做角度过滤或固定名额裁剪；HUD 文本则通过 `widgets/text` 的 `Text` 绘制成“标签 + 距离”。
-- 本地移速增强则通过 `playerspeedmult:SetPredictedSpeedMult(...)` 只给本机玩家挂预测移速倍率。
+- 当前移速增强通过 `playerspeedmult:SetPredictedSpeedMult(...)` 挂一个固定来源键实现。
 - 本地交互距离实验则直接在客户端给 `PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 追加少量 `extra_arrive_dist`，并把 `CHOP.distance` 略微抬高。
 - 当前这一版里，`PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加 `0.9` 的额外到达距离，`CHOP.distance` 则在原版基础上额外加 `0.6`。
 - 当前快打实验则直接在客户端本地压低 `combat_replica` 的最小攻击周期判断、降低攻击按钮重复节流，并缩短 `wilson_client.attack` 的本地超时。
-- 当前这一版里，本地预测移速从 `1.1x` 下调到 `1.05x`，快打实验则把本地最小攻击周期和本地攻击状态超时都压到原值的 `85%`，并把攻击按钮重复冷却压到 `0.15` 秒。
+- 当前这一版里，移速增强调整为 `1.05x`，快打实验则把本地最小攻击周期和本地攻击状态超时都压到原值的 `85%`，并把攻击按钮重复冷却压到 `0.15` 秒。
+- 已把 `AddStategraphPostInit` 收成本地别名后再调用，避免再次踩到 clientOnly 严格模式下的未声明全局崩溃。
 
 English
 
@@ -40,7 +42,7 @@ Current features:
 - Each marker spreads by direction and includes rough distance text.
 - The scan radius is uniformly set to `100`, and the marker ring is pushed a bit farther away again.
 - Multiple targets are now allowed to overlap directly instead of being hidden by angle-based priority filtering.
-- It also adds a local predicted `1.05x` movement speed boost for your own client-side movement.
+- It also adds a `1.05x` movement speed boost.
 - It also adds an experimental local interaction reach tweak for pickup, pick, harvest, mine, dig, and chop actions.
 - It also adds an experimental local faster-attack tweak that tries to enter the next real attack input earlier.
 
@@ -50,14 +52,16 @@ Notes:
 - It currently focuses on nearby common ground flowers, butterflies, living players, and Touch Stones.
 - The initial strict-mode client-only loading issue has been fixed.
 - There are no external configuration options in this version.
-- The speed boost is prediction-only on the client rather than a true server-side movement rewrite.
+- The current speed boost is implemented through a client-only mod, so some multiplayer setups can still hit sync boundaries or mild rubber-banding.
 - The interaction reach tweak is another client-only experiment focused on probing the acceptance boundary of local action-distance changes in multiplayer.
 - The current experiment values have been pushed a bit farther so the reach increase is easier to feel before checking where server-side rejection or rubber-banding starts.
-- The current faster-attack tweak is another client-only boundary experiment focused on sending the next attack request earlier instead of only changing animation feel.
+- The current faster-attack tweak is another client-only boundary experiment focused on sending the next attack request earlier.
+- Recorded issue: `scripts/clientattackspeed.lua` previously used the global name `AddStategraphPostInit` directly under strict mode, which caused mod loading to abort before startup finished.
 - The current implementation mainly uses `AddClassPostConstruct("screens/playerhud", ...)`, grouped `TheSim:FindEntities(...)` lookups, `TheSim:GetScreenPos(...)`, and camera heading fallback to place the local HUD markers.
 - Results now keep a stable distance-based order only, without angle filtering or a fixed display cap, and are then drawn with `widgets/text` `Text` in a simple “label + distance” format.
-- The predicted speed boost is attached locally through `playerspeedmult:SetPredictedSpeedMult(...)` on the local player only.
+- The current speed boost is implemented through `playerspeedmult:SetPredictedSpeedMult(...)` with a fixed local source key.
 - The interaction reach experiment locally bumps `extra_arrive_dist` for `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG`, while slightly increasing `CHOP.distance`.
 - In the current build, `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG` each get an extra `0.9` arrive-distance bump, while `CHOP.distance` is increased by `0.6` over vanilla.
 - The faster-attack experiment locally patches `combat_replica` cooldown checks, `playercontroller` attack-button repeat throttling, and `wilson_client.attack` timeout length.
-- In the current build, the local predicted move speed is reduced to `1.05x`, while the faster-attack experiment scales local attack cooldown and local attack-state timeout to `85%` and lowers attack-button repeat cooldown to `0.15` seconds.
+- In the current build, the move speed boost is tuned to `1.05x`, while the faster-attack experiment scales local attack cooldown and local attack-state timeout to `85%` and lowers attack-button repeat cooldown to `0.15` seconds.
+- This has now been hardened by resolving `AddStategraphPostInit` into a local alias before use, avoiding another undeclared-global crash during strict client-only loading.

@@ -4,16 +4,18 @@ Client-only survival helper utilities focused on guidance, convenience, and lowe
 
 Current features:
 - Nearby flowers, butterflies, players, and Touch Stones are highlighted with local text indicators around your character.
-- Adds a local predicted `1.1x` movement speed boost for your own client-side player movement.
+- Adds a local predicted `1.05x` movement speed boost for your own client-side player movement.
 - Adds an experimental client-side interaction reach increase for pickup, pick, harvest, mine, dig, and chop actions.
+- Adds an experimental client-side faster-attack tweak that tries to send and recycle real attack inputs earlier.
 - The indicators are rendered only on your own client.
 - The server and host do not need to install this mod.
 - The guidance scans a large area, keeps distance text, and now shows all detected labels without angle-based priority filtering.
 - The speed boost is client-side prediction only and does not rewrite server-authoritative movement.
 - The interaction reach tweak is also experimental and mainly intended to probe how far client-side action distance changes can still be accepted by the server.
+- The faster-attack tweak is another sync-boundary experiment and may still be limited by server-side combat timing.
 ]]
 author = "ra1nyxin"
-version = "0.1.12"
+version = "0.1.13"
 
 forumthread = ""
 api_version = 10
@@ -36,5 +38,6 @@ server_filter_tags = {
     "guide",
     "speed",
     "reach",
+    "attack",
     "touch stone",
 }

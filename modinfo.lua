@@ -4,14 +4,14 @@ Client-only survival helper utilities focused on guidance, convenience, and lowe
 
 Current features:
 - Nearby flowers, butterflies, players, and Touch Stones are highlighted with local text indicators around your character.
-- Adds a local predicted `1.2x` movement speed boost for your own client-side player movement.
+- Adds a local predicted `1.1x` movement speed boost for your own client-side player movement.
 - The indicators are rendered only on your own client.
 - The server and host do not need to install this mod.
 - The guidance scans a large area, keeps distance text, and now shows all detected labels without angle-based priority filtering.
 - The speed boost is client-side prediction only and does not rewrite server-authoritative movement.
 ]]
 author = "ra1nyxin"
-version = "0.1.9"
+version = "0.1.10"
 
 forumthread = ""
 api_version = 10

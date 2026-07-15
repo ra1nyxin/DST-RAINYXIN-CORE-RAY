@@ -4,7 +4,7 @@ local Widget = require("widgets/widget")
 
 local UPDATE_INTERVAL = 0.25
 local SPEED_SOURCE = "dst_rainyxin_core_ray_client_speed"
-local SPEED_MULT = 1.2
+local SPEED_MULT = 1.1
 
 local ClientSpeedWidget = Class(Widget, function(self, owner)
     Widget._ctor(self, "ClientSpeedWidget")

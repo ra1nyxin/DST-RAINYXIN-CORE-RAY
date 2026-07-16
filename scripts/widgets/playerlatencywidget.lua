@@ -13,6 +13,7 @@ local TITLE_FONT_SIZE = 20
 local MAX_NAME_CHARS = 24
 local MAX_NAME_BYTES = 72
 local MAX_LINE_WIDTH = 420
+local TEXT_LEFT_X = MAX_LINE_WIDTH * 0.5
 
 local LATENCY_COLORS = {
     good = { 0.35, 1.0, 0.45, 0.95 },
@@ -198,7 +199,7 @@ local PlayerLatencyWidget = Class(Widget, function(self, owner, controls)
     self.title:SetRegionSize(MAX_LINE_WIDTH, LINE_HEIGHT)
     self.title:SetHAlign(_G.ANCHOR_LEFT)
     self.title:SetColour(1, 1, 1, 0.95)
-    self.title:SetPosition(0, 0, 0)
+    self.title:SetPosition(TEXT_LEFT_X, 0, 0)
 
     self:SetPosition(LEFT_MARGIN, -TOP_MARGIN, 0)
     self:StartUpdating()
@@ -349,7 +350,7 @@ function PlayerLatencyWidget:Refresh()
 
         label:SetString(line)
         label:SetColour(color[1], color[2], color[3], color[4])
-        label:SetPosition(0, -(i * LINE_HEIGHT + 6), 0)
+        label:SetPosition(TEXT_LEFT_X, -(i * LINE_HEIGHT + 6), 0)
         label:Show()
     end
 

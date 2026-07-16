@@ -9,6 +9,7 @@ AddClassPostConstruct("screens/playerhud", function(self)
         self.flower_ray_widget = self:AddChild(FlowerRayWidget(self.owner))
     end
     if self ~= nil and self.player_latency_widget == nil then
-        self.player_latency_widget = self:AddChild(PlayerLatencyWidget(self.owner))
+        local parent = self.controls ~= nil and self.controls.topleft_root or self
+        self.player_latency_widget = parent:AddChild(PlayerLatencyWidget(self.owner))
     end
 end)

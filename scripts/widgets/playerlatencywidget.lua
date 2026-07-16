@@ -8,6 +8,7 @@ local LEFT_MARGIN = 18
 local TOP_MARGIN = 12
 local LINE_HEIGHT = 19
 local FONT_SIZE = 18
+local TITLE_FONT_SIZE = 20
 local MAX_NAME_CHARS = 24
 local MAX_NAME_BYTES = 72
 local MAX_LINE_WIDTH = 420
@@ -178,22 +179,22 @@ local function FormatLatencyText(latency_ms)
     return string.format("%d ms", latency_ms)
 end
 
+local function GetFallbackLocalName()
+    if _G.ThePlayer ~= nil and type(_G.ThePlayer.name) == "string" and _G.ThePlayer.name ~= "" then
+        return SanitizePlayerName(_G.ThePlayer.name)
+    end
+    return "我"
+end
+
 local PlayerLatencyWidget = Class(Widget, function(self, owner)
     Widget._ctor(self, "PlayerLatencyWidget")
 
     self.owner = owner
     self.elapsed = 0
     self.labels = {}
-
-    if self.SetHAnchor ~= nil then
-        self:SetHAnchor(_G.ANCHOR_LEFT)
-    end
-    if self.SetVAnchor ~= nil then
-        self:SetVAnchor(_G.ANCHOR_TOP)
-    end
-    if self.SetScaleMode ~= nil then
-        self:SetScaleMode(_G.SCALEMODE_PROPORTIONAL)
-    end
+    self.title = self:AddChild(Text(_G.CHATFONT, TITLE_FONT_SIZE, "在线玩家"))
+    self.title:SetColour(1, 1, 1, 0.95)
+    self.title:SetPosition(0, 0, 0)
 
     self:SetPosition(LEFT_MARGIN, -TOP_MARGIN, 0)
     self:StartUpdating()
@@ -234,16 +235,35 @@ function PlayerLatencyWidget:GetLatencyMs(record)
 end
 
 function PlayerLatencyWidget:GetDisplayClients()
+    local local_name = GetFallbackLocalName()
+    local local_userid = _G.TheNet ~= nil and _G.TheNet:GetUserID() or nil
+    local local_latency = _G.TheNet ~= nil and _G.TheNet.GetAveragePing ~= nil and ClampLatency(_G.TheNet:GetAveragePing()) or nil
+
     if _G.TheNet == nil or _G.TheNet.GetClientTable == nil then
-        return {}
+        return {
+            {
+                userid = local_userid,
+                name = local_name,
+                latency_ms = local_latency,
+                netscore = nil,
+                is_local = true,
+            }
+        }
     end
 
     local raw_clients = _G.TheNet:GetClientTable()
     if raw_clients == nil then
-        return {}
+        return {
+            {
+                userid = local_userid,
+                name = local_name,
+                latency_ms = local_latency,
+                netscore = nil,
+                is_local = true,
+            }
+        }
     end
 
-    local local_userid = _G.TheNet:GetUserID()
     local hosted = _G.TheNet:GetServerIsClientHosted()
     local clients = {}
 
@@ -270,6 +290,16 @@ function PlayerLatencyWidget:GetDisplayClients()
         return a.name < b.name
     end)
 
+    if #clients == 0 then
+        clients[1] = {
+            userid = local_userid,
+            name = local_name,
+            latency_ms = local_latency,
+            netscore = nil,
+            is_local = true,
+        }
+    end
+
     return clients
 end
 
@@ -285,7 +315,7 @@ function PlayerLatencyWidget:Refresh()
 
         label:SetString(line)
         label:SetColour(color[1], color[2], color[3], color[4])
-        label:SetPosition(0, -((i - 1) * LINE_HEIGHT), 0)
+        label:SetPosition(0, -(i * LINE_HEIGHT + 6), 0)
         label:Show()
     end
 

@@ -10,7 +10,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 每条指引会按方向分散显示，并附带大致距离。
 - 现在统一按 `100` 范围探测，并把提示文字圈重新放远了一点。
 - 多个目标现在允许直接重叠显示，不再因为优先级或角度过滤而漏掉目标。
-- 会在屏幕左上角显示房间在线玩家列表，并显示每个玩家的延迟文本和颜色区分。
+- 会在屏幕左上角显示房间在线玩家列表，并显示每个玩家的延迟文本或网络等级以及颜色区分。
 - 额外提供一档实验性的本地交互距离微调，尝试让捡物、采集、收获、挖矿、铲挖、砍树能在稍远一点的位置开始动作。
 - 额外提供一档实验性的本地快打增强，尝试让普通攻击更早进入下一次真实攻击输入循环。
 
@@ -21,6 +21,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 已修正首版 clientOnly 子脚本严格模式坏加载问题。
 - 当前版本没有做外部配置文件开关。
 - 现在左上角新增房间在线玩家列表，会给延迟低、中、高分别上不同颜色，方便快速看状态。
+- 当前玩家自己的真实延迟会直接显示为 `xx ms`；其他玩家如果 Lua 侧拿不到真实毫秒值，就会退化显示为 `网络优 / 网络中 / 网络差`，避免继续空着 `-- ms`。
 - 玩家名显示前会先做清洗，专门处理控制字符、零宽字符、双向控制符、过长名字和部分容易搞坏 UI 的符号。
 - 已记录：之前试过 `1.1x` 和 `1.05x` 两档 clientOnly 移速增强，实测都会有概率出现走着走着被拉回回弹，所以这一档移速增强已经删掉。
 - 当前这档交互距离增强同样是 clientOnly 试验项，主要用来实测客户端动作到达距离变化在联机场景里的接受边界。
@@ -31,6 +32,7 @@ Client-only helper utilities focused on guidance, convenience, and smoother surv
 - 当前实现主要用 `AddClassPostConstruct("screens/playerhud", ...)` 挂本地 HUD，用 `TheSim:FindEntities(...)` 分组查花/蝶/人/试金石，再用 `TheSim:GetScreenPos(...)` 和相机朝向做屏幕定位。
 - 查询结果现在只做距离排序，不再做角度过滤或固定名额裁剪；HUD 文本则通过 `widgets/text` 的 `Text` 绘制成“标签 + 距离”。
 - 左上角玩家列表通过 `TheNet:GetClientTable()` 拉当前房间在线玩家，当前玩家自己的延迟则直接读 `TheNet:GetAveragePing()`。
+- 对其他玩家会先尝试从 `GetClientTable()` / `GetClientTableForUser()` 里找可用延迟字段；如果 Lua 侧没有暴露真实毫秒值，就退化为基于 `netscore` 的网络等级文本。
 - 玩家名字会先做字符串清洗，再做 UTF-8 安全截断，避免控制字符、零宽字符、双向控制符和超长输入把 HUD 搞乱。
 - 本地交互距离实验则直接在客户端给 `PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 追加少量 `extra_arrive_dist`，并把 `CHOP.distance` 略微抬高。
 - 当前这一版里，`PICKUP`、`PICK`、`HARVEST`、`MINE`、`DIG` 统一追加 `0.9` 的额外到达距离，`CHOP.distance` 则在原版基础上额外加 `0.6`。
@@ -46,7 +48,7 @@ Current features:
 - Each marker spreads by direction and includes rough distance text.
 - The scan radius is uniformly set to `100`, and the marker ring is pushed a bit farther away again.
 - Multiple targets are now allowed to overlap directly instead of being hidden by angle-based priority filtering.
-- It also adds a top-left room player list with per-player latency text and color bands.
+- It also adds a top-left room player list with per-player latency text or network-grade fallback plus color bands.
 - It also adds an experimental local interaction reach tweak for pickup, pick, harvest, mine, dig, and chop actions.
 - It also adds an experimental local faster-attack tweak that tries to enter the next real attack input earlier.
 
@@ -57,6 +59,7 @@ Notes:
 - The initial strict-mode client-only loading issue has been fixed.
 - There are no external configuration options in this version.
 - The top-left player list now colors low, medium, and high latency differently so room status is easier to read at a glance.
+- Your own exact latency is shown as `xx ms`; if Lua does not expose exact milliseconds for other players, their rows fall back to `network good / okay / bad` instead of staying at `-- ms`.
 - Player names are sanitized before drawing to handle control characters, zero-width characters, bidi controls, overlong names, and a few UI-hostile symbols.
 - Recorded issue: earlier `1.1x` and `1.05x` client-only move-speed experiments both produced rubber-banding during real play, so the movement-speed boost has been removed.
 - The interaction reach tweak is another client-only experiment focused on probing the acceptance boundary of local action-distance changes in multiplayer.
@@ -67,6 +70,7 @@ Notes:
 - The current implementation mainly uses `AddClassPostConstruct("screens/playerhud", ...)`, grouped `TheSim:FindEntities(...)` lookups, `TheSim:GetScreenPos(...)`, and camera heading fallback to place the local HUD markers.
 - Results now keep a stable distance-based order only, without angle filtering or a fixed display cap, and are then drawn with `widgets/text` `Text` in a simple “label + distance” format.
 - The top-left player list is built from `TheNet:GetClientTable()`, while the local player's own latency is read directly from `TheNet:GetAveragePing()`.
+- Other players first try to read latency-like fields from `GetClientTable()` / `GetClientTableForUser()`; if exact milliseconds are not exposed to Lua, the widget falls back to a `netscore`-based network-grade label.
 - Player names are sanitized and then UTF-8-safe truncated before drawing so hostile or malformed input does not blow up the HUD.
 - The interaction reach experiment locally bumps `extra_arrive_dist` for `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG`, while slightly increasing `CHOP.distance`.
 - In the current build, `PICKUP`, `PICK`, `HARVEST`, `MINE`, and `DIG` each get an extra `0.9` arrive-distance bump, while `CHOP.distance` is increased by `0.6` over vanilla.

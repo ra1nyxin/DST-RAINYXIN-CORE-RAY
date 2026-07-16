@@ -4,7 +4,7 @@ local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 
 local UPDATE_INTERVAL = 0.5
-local LEFT_MARGIN = 32
+local LEFT_MARGIN = 48
 local TOP_MARGIN = 12
 local MINIMAP_GAP = 20
 local LINE_HEIGHT = 19
@@ -174,11 +174,23 @@ local function GetLatencyColor(latency_ms, netscore)
     return LATENCY_COLORS.unknown
 end
 
-local function FormatLatencyText(latency_ms)
+local function FormatLatencyText(latency_ms, netscore, is_local)
+    if latency_ms ~= nil then
+        return string.format("%d ms", latency_ms)
+    end
+
+    if not is_local and type(netscore) == "number" then
+        if netscore <= 0 then
+            return "网络优"
+        elseif netscore == 1 then
+            return "网络中"
+        end
+        return "网络差"
+    end
+
     if latency_ms == nil then
         return "-- ms"
     end
-    return string.format("%d ms", latency_ms)
 end
 
 local function GetFallbackLocalName()
@@ -346,7 +358,7 @@ function PlayerLatencyWidget:Refresh()
         local client = clients[i]
         local label = self.labels[i]
         local color = GetLatencyColor(client.latency_ms, client.netscore)
-        local line = string.format("%s  %s", client.name, FormatLatencyText(client.latency_ms))
+        local line = string.format("%s  %s", client.name, FormatLatencyText(client.latency_ms, client.netscore, client.is_local))
 
         label:SetString(line)
         label:SetColour(color[1], color[2], color[3], color[4])

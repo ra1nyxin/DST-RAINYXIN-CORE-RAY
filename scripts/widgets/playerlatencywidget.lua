@@ -4,10 +4,10 @@ local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 
 local UPDATE_INTERVAL = 0.5
-local LEFT_MARGIN = 64
+local LEFT_MARGIN = 76
 local TOP_MARGIN = 12
 local MINIMAP_GAP = 20
-local LINE_HEIGHT = 19
+local LINE_HEIGHT = 16
 local FONT_SIZE = 18
 local MAX_NAME_CHARS = 24
 local MAX_NAME_BYTES = 72

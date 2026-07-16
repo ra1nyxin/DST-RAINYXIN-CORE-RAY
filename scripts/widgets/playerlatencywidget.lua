@@ -4,7 +4,7 @@ local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 
 local UPDATE_INTERVAL = 0.5
-local LEFT_MARGIN = 18
+local LEFT_MARGIN = 32
 local TOP_MARGIN = 12
 local MINIMAP_GAP = 20
 local LINE_HEIGHT = 19
@@ -195,6 +195,8 @@ local PlayerLatencyWidget = Class(Widget, function(self, owner, controls)
     self.elapsed = 0
     self.labels = {}
     self.title = self:AddChild(Text(_G.CHATFONT, TITLE_FONT_SIZE, "在线玩家"))
+    self.title:SetRegionSize(MAX_LINE_WIDTH, LINE_HEIGHT)
+    self.title:SetHAlign(_G.ANCHOR_LEFT)
     self.title:SetColour(1, 1, 1, 0.95)
     self.title:SetPosition(0, 0, 0)
 

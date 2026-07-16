@@ -16,7 +16,7 @@ Current features:
 - The earlier `1.1x` and `1.05x` movement-speed experiments were removed after repeated rubber-banding tests showed that movement sync is enforced too tightly.
 ]]
 author = "ra1nyxin"
-version = "0.1.22"
+version = "0.1.23"
 
 forumthread = ""
 api_version = 10

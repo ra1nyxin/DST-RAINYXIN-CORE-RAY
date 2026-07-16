@@ -4,12 +4,11 @@ local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 
 local UPDATE_INTERVAL = 0.5
-local LEFT_MARGIN = 48
+local LEFT_MARGIN = 64
 local TOP_MARGIN = 12
 local MINIMAP_GAP = 20
 local LINE_HEIGHT = 19
 local FONT_SIZE = 18
-local TITLE_FONT_SIZE = 20
 local MAX_NAME_CHARS = 24
 local MAX_NAME_BYTES = 72
 local MAX_LINE_WIDTH = 420
@@ -181,11 +180,11 @@ local function FormatLatencyText(latency_ms, netscore, is_local)
 
     if not is_local and type(netscore) == "number" then
         if netscore <= 0 then
-            return "网络优"
+            return "50\194\177 ms"
         elseif netscore == 1 then
-            return "网络中"
+            return "200\194\177 ms"
         end
-        return "网络差"
+        return "999\194\177 ms"
     end
 
     if latency_ms == nil then
@@ -207,11 +206,6 @@ local PlayerLatencyWidget = Class(Widget, function(self, owner, controls)
     self.controls = controls
     self.elapsed = 0
     self.labels = {}
-    self.title = self:AddChild(Text(_G.CHATFONT, TITLE_FONT_SIZE, "在线玩家"))
-    self.title:SetRegionSize(MAX_LINE_WIDTH, LINE_HEIGHT)
-    self.title:SetHAlign(_G.ANCHOR_LEFT)
-    self.title:SetColour(1, 1, 1, 0.95)
-    self.title:SetPosition(TEXT_LEFT_X, 0, 0)
 
     self:SetPosition(LEFT_MARGIN, -TOP_MARGIN, 0)
     self:StartUpdating()
@@ -362,7 +356,7 @@ function PlayerLatencyWidget:Refresh()
 
         label:SetString(line)
         label:SetColour(color[1], color[2], color[3], color[4])
-        label:SetPosition(TEXT_LEFT_X, -(i * LINE_HEIGHT + 6), 0)
+        label:SetPosition(TEXT_LEFT_X, -((i - 1) * LINE_HEIGHT), 0)
         label:Show()
     end
 

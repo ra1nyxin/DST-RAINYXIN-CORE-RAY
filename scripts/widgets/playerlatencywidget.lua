@@ -6,6 +6,7 @@ local Text = require("widgets/text")
 local UPDATE_INTERVAL = 0.5
 local LEFT_MARGIN = 18
 local TOP_MARGIN = 12
+local MINIMAP_GAP = 20
 local LINE_HEIGHT = 19
 local FONT_SIZE = 18
 local TITLE_FONT_SIZE = 20
@@ -186,10 +187,11 @@ local function GetFallbackLocalName()
     return "我"
 end
 
-local PlayerLatencyWidget = Class(Widget, function(self, owner)
+local PlayerLatencyWidget = Class(Widget, function(self, owner, controls)
     Widget._ctor(self, "PlayerLatencyWidget")
 
     self.owner = owner
+    self.controls = controls
     self.elapsed = 0
     self.labels = {}
     self.title = self:AddChild(Text(_G.CHATFONT, TITLE_FONT_SIZE, "在线玩家"))
@@ -199,6 +201,34 @@ local PlayerLatencyWidget = Class(Widget, function(self, owner)
     self:SetPosition(LEFT_MARGIN, -TOP_MARGIN, 0)
     self:StartUpdating()
 end)
+
+function PlayerLatencyWidget:RefreshAnchorPosition()
+    local x = LEFT_MARGIN
+    local y = -TOP_MARGIN
+
+    if self.controls ~= nil and self.controls.minimap_small ~= nil and self.controls.minimap_small.mapsize ~= nil and _G.TheSim ~= nil then
+        local hudscale = self.controls.top_root ~= nil and self.controls.top_root:GetScale() or nil
+        local screenw, screenh = _G.TheSim:GetScreenSize()
+        if hudscale ~= nil and hudscale.x ~= nil and hudscale.x ~= 0 and hudscale.y ~= nil and hudscale.y ~= 0 then
+            screenw = screenw / hudscale.x
+            screenh = screenh / hudscale.y
+        end
+
+        local mapx, mapy = self.controls.minimap_small:GetPosition():Get()
+        local mapw = self.controls.minimap_small.mapsize.w or 0
+        local maph = self.controls.minimap_small.mapsize.h or 0
+        local map_left = screenw * 0.5 + mapx - mapw * 0.5
+        local map_right = screenw * 0.5 + mapx + mapw * 0.5
+        local map_top = mapy - maph * 0.5
+        local map_bottom = mapy + maph * 0.5
+
+        if map_left <= LEFT_MARGIN + 8 and map_right > LEFT_MARGIN and map_top <= 8 and map_bottom > -80 then
+            x = math.floor(map_right + MINIMAP_GAP)
+        end
+    end
+
+    self:SetPosition(x, y, 0)
+end
 
 function PlayerLatencyWidget:HideAll()
     for i = 1, #self.labels do
@@ -304,6 +334,8 @@ function PlayerLatencyWidget:GetDisplayClients()
 end
 
 function PlayerLatencyWidget:Refresh()
+    self:RefreshAnchorPosition()
+
     local clients = self:GetDisplayClients()
     self:EnsureLabelCount(#clients)
 

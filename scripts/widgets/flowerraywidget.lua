@@ -10,8 +10,6 @@ local PIGKING_ENTITY_RADIUS = 160
 local RING_RADIUS = 104
 local PLAYER_SCREEN_Y_OFFSET = 28
 local LABEL_FONT_SIZE = 19
-local FLOWER_MUST_TAGS = { "pickable" }
-local FLOWER_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
 local BUTTERFLY_MUST_TAGS = { "butterfly" }
 local BUTTERFLY_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
 local PLAYER_MUST_TAGS = { "player" }
@@ -23,9 +21,6 @@ local PIGKING_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
 local PIGKING_NODE_PREFIXES = { "PigKingdom", "PigCity" }
 local PLAYER_TARGET = { label = "人", color = { 1, 1, 1, 0.95 } }
 local TARGET_PREFABS = {
-    flower = { label = "花", color = { 1, 0.95, 0.3, 0.95 } },
-    flower_evil = { label = "花", color = { 1, 0.8, 0.3, 0.95 } },
-    flower_rose = { label = "花", color = { 1, 0.7, 0.85, 0.95 } },
     butterfly = { label = "蝶", color = { 1, 0.9, 0.45, 0.95 } },
     pigking = { label = "猪王", color = { 1, 0.72, 0.22, 0.98 } },
     resurrectionstone = { label = "试金石", color = { 0.7, 0.95, 1, 0.95 } },
@@ -369,7 +364,6 @@ function FlowerRayWidget:CollectTargets(player)
     local px, py, pz = player.Transform:GetWorldPosition()
     local raw_candidates = {}
     local seen_guids = {}
-    local flower_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, FLOWER_MUST_TAGS, FLOWER_CANT_TAGS)
     local butterfly_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, BUTTERFLY_MUST_TAGS, BUTTERFLY_CANT_TAGS)
     local player_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, PLAYER_MUST_TAGS, PLAYER_CANT_TAGS)
     local touchstone_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, TOUCHSTONE_MUST_TAGS, TOUCHSTONE_CANT_TAGS)
@@ -381,7 +375,6 @@ function FlowerRayWidget:CollectTargets(player)
         screen_w, screen_h = _G.TheSim:GetScreenSize()
     end
 
-    self:AppendMatches(raw_candidates, seen_guids, player, flower_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, player_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)

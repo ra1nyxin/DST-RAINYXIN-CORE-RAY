@@ -3,7 +3,7 @@ description = [[
 Client-only survival helper utilities focused on guidance, convenience, and lower-friction play.
 
 Current features:
-- Nearby flowers, butterflies, players, and Touch Stones are highlighted with local text indicators around your character.
+- Nearby butterflies, players, and Touch Stones are highlighted with local text indicators around your character.
 - Adds a top-left player list with per-player latency text and color-coded delay levels.
 - Adds an experimental client-side interaction reach increase for pickup, pick, harvest, mine, dig, and chop actions.
 - Adds an experimental client-side faster-attack tweak that tries to send and recycle real attack inputs earlier.
@@ -16,9 +16,10 @@ Current features:
 - The earlier `1.1x` and `1.05x` movement-speed experiments were removed after repeated rubber-banding tests showed that movement sync is enforced too tightly.
 - Adds a Pig King direction label that can keep pointing toward the Pig King from far away by reading client-side world topology and keeping the inferred location in memory only for the current session.
 - Pig King and discovered Touch Stones now use memory-only cached world positions so their direction and distance labels can keep working anywhere on the map during the current play session.
+- Flower tracking has been removed because nearby butterflies already imply nearby flowers, keeping the guidance list cleaner.
 ]]
 author = "ra1nyxin"
-version = "0.1.29"
+version = "0.1.30"
 
 forumthread = ""
 api_version = 10
@@ -35,7 +36,6 @@ icon = nil
 server_filter_tags = {
     "client",
     "helper",
-    "flower",
     "butterfly",
     "player",
     "guide",

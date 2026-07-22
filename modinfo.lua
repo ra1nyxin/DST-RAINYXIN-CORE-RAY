@@ -19,7 +19,7 @@ Current features:
 - Flower tracking has been removed because nearby butterflies already imply nearby flowers, keeping the guidance list cleaner.
 ]]
 author = "ra1nyxin"
-version = "0.1.30"
+version = "0.1.31"
 
 forumthread = ""
 api_version = 10

@@ -51,7 +51,7 @@ end
 
 local function ApproximateScreenDelta(dx, dz)
     local rx, rz = RotateByHeading(dx, dz)
-    return -(rx - rz), (rx + rz) * 0.5
+    return rx - rz, -(rx + rz) * 0.5
 end
 
 local function GetScreenPoint(x, y, z)
@@ -94,6 +94,10 @@ local function ComputeNodeCenter(node)
     end
 
     return sum_x / #poly, sum_z / #poly
+end
+
+local function HasNodeSuffix(node_id, suffix)
+    return node_id == suffix or node_id:sub(-#suffix) == suffix
 end
 
 local FlowerRayWidget = Class(Widget, function(self, owner)
@@ -180,7 +184,7 @@ function FlowerRayWidget:RefreshPigKingTopologyCache()
         for index, node_id in ipairs(topology.ids) do
             if type(node_id) == "string" then
                 for _, prefix in ipairs(PIGKING_NODE_PREFIXES) do
-                    if node_id == prefix or node_id:find(prefix, 1, true) ~= nil then
+                    if HasNodeSuffix(node_id, prefix) then
                         local node = topology.nodes[index]
                         local x, z = ComputeNodeCenter(node)
                         if x ~= nil and z ~= nil then
@@ -373,6 +377,7 @@ function FlowerRayWidget:CollectTargets(player)
     self:AppendMatches(raw_candidates, seen_guids, player, flower_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, player_ents, screen_w, screen_h, psx, psy, has_player_screen)
+    self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
 
     for _, ent in ipairs(touchstone_ents) do
         if ent ~= nil and ent:IsValid() and ent.prefab == "resurrectionstone" then
@@ -380,7 +385,13 @@ function FlowerRayWidget:CollectTargets(player)
             self:CacheStaticTarget(self.cached_touchstones, tostring(ent.GUID), tx, tz, TARGET_PREFABS.resurrectionstone)
         end
     end
-    self:AppendCachedTargets(raw_candidates, player, self.cached_touchstones, screen_w, screen_h, psx, psy, has_player_screen)
+    local cached_touchstones = {}
+    for cache_id, entry in pairs(self.cached_touchstones) do
+        if not seen_guids[tonumber(cache_id)] then
+            cached_touchstones[cache_id] = entry
+        end
+    end
+    self:AppendCachedTargets(raw_candidates, player, cached_touchstones, screen_w, screen_h, psx, psy, has_player_screen)
 
     local has_real_pigking = false
     for _, ent in ipairs(king_ents) do
@@ -388,10 +399,11 @@ function FlowerRayWidget:CollectTargets(player)
             has_real_pigking = true
             local kx, _, kz = ent.Transform:GetWorldPosition()
             self.cached_pigking_actual = { x = kx, z = kz }
+            self:AppendMatches(raw_candidates, seen_guids, player, { ent }, screen_w, screen_h, psx, psy, has_player_screen, PIGKING_ENTITY_RADIUS)
         end
     end
 
-    if self.cached_pigking_actual ~= nil then
+    if not has_real_pigking and self.cached_pigking_actual ~= nil then
         self:AppendPointTarget(raw_candidates, player, self.cached_pigking_actual.x, self.cached_pigking_actual.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking, false)
     elseif not has_real_pigking then
         local pigking_target = self:GetBestPigKingTopologyTarget(player)

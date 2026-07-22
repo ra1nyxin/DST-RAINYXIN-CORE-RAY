@@ -15,9 +15,10 @@ Current features:
 - The faster-attack tweak is another sync-boundary experiment and may still be limited by server-side combat timing.
 - The earlier `1.1x` and `1.05x` movement-speed experiments were removed after repeated rubber-banding tests showed that movement sync is enforced too tightly.
 - Adds a Pig King direction label that can keep pointing toward the Pig King from far away by reading client-side world topology and keeping the inferred location in memory only for the current session.
+- Pig King and discovered Touch Stones now use memory-only cached world positions so their direction and distance labels can keep working anywhere on the map during the current play session.
 ]]
 author = "ra1nyxin"
-version = "0.1.25"
+version = "0.1.26"
 
 forumthread = ""
 api_version = 10

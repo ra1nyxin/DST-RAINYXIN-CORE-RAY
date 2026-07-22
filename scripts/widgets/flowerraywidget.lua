@@ -102,8 +102,11 @@ local FlowerRayWidget = Class(Widget, function(self, owner)
     self.owner = owner
     self.elapsed = 0
     self.labels = {}
+    self.cached_world = nil
     self.cached_pigking_targets = nil
     self.cached_pigking_world = nil
+    self.cached_pigking_actual = nil
+    self.cached_touchstones = {}
     self.next_topology_scan_time = 0
 
     if self.SetHAnchor ~= nil then
@@ -140,10 +143,32 @@ function FlowerRayWidget:GetTrackedPlayer()
     return _G.ThePlayer
 end
 
-function FlowerRayWidget:ResetPigKingCache()
+function FlowerRayWidget:ResetWorldCaches()
+    self.cached_world = _G.TheWorld
     self.cached_pigking_targets = nil
     self.cached_pigking_world = nil
+    self.cached_pigking_actual = nil
+    self.cached_touchstones = {}
     self.next_topology_scan_time = 0
+end
+
+function FlowerRayWidget:EnsureWorldCaches()
+    local world = _G.TheWorld
+    if self.cached_world ~= world then
+        self:ResetWorldCaches()
+    end
+end
+
+function FlowerRayWidget:CacheStaticTarget(cache, cache_id, world_x, world_z, target)
+    if cache == nil or cache_id == nil or world_x == nil or world_z == nil or target == nil then
+        return
+    end
+
+    cache[cache_id] = {
+        x = world_x,
+        z = world_z,
+        target = target,
+    }
 end
 
 function FlowerRayWidget:RefreshPigKingTopologyCache()
@@ -179,7 +204,7 @@ end
 function FlowerRayWidget:EnsurePigKingTopologyCache()
     local world = _G.TheWorld
     if self.cached_pigking_world ~= world then
-        self:ResetPigKingCache()
+        self:ResetWorldCaches()
     end
 
     local now = _G.GetTime ~= nil and _G.GetTime() or 0
@@ -217,7 +242,7 @@ function FlowerRayWidget:GetBestPigKingTopologyTarget(player)
     return best_target
 end
 
-function FlowerRayWidget:AppendPointTarget(raw_candidates, player, world_x, world_z, screen_w, screen_h, psx, psy, has_player_screen, target)
+function FlowerRayWidget:AppendPointTarget(raw_candidates, player, world_x, world_z, screen_w, screen_h, psx, psy, has_player_screen, target, use_screen_projection)
     if world_x == nil or world_z == nil or target == nil then
         return
     end
@@ -233,12 +258,16 @@ function FlowerRayWidget:AppendPointTarget(raw_candidates, player, world_x, worl
 
     local dx, dy
     local has_screen_point = false
-    local fsx, fsy, ok = GetScreenPoint(world_x, py, world_z)
-    if ok and has_player_screen then
-        dx = fsx - psx
-        dy = fsy - psy
-        has_screen_point = true
-    else
+    if use_screen_projection then
+        local fsx, fsy, ok = GetScreenPoint(world_x, py, world_z)
+        if ok and has_player_screen then
+            dx = fsx - psx
+            dy = fsy - psy
+            has_screen_point = true
+        end
+    end
+
+    if not has_screen_point then
         dx, dy = ApproximateScreenDelta(world_dx, world_dz)
     end
 
@@ -259,6 +288,18 @@ function FlowerRayWidget:AppendPointTarget(raw_candidates, player, world_x, worl
         text = target.label,
         color = target.color,
     }
+end
+
+function FlowerRayWidget:AppendCachedTargets(raw_candidates, player, cache, screen_w, screen_h, psx, psy, has_player_screen)
+    if cache == nil then
+        return
+    end
+
+    for _, entry in pairs(cache) do
+        if entry ~= nil then
+            self:AppendPointTarget(raw_candidates, player, entry.x, entry.z, screen_w, screen_h, psx, psy, has_player_screen, entry.target, false)
+        end
+    end
 end
 
 function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents, screen_w, screen_h, psx, psy, has_player_screen, max_distance)
@@ -312,6 +353,8 @@ function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents,
 end
 
 function FlowerRayWidget:CollectTargets(player)
+    self:EnsureWorldCaches()
+
     local px, py, pz = player.Transform:GetWorldPosition()
     local raw_candidates = {}
     local seen_guids = {}
@@ -330,20 +373,30 @@ function FlowerRayWidget:CollectTargets(player)
     self:AppendMatches(raw_candidates, seen_guids, player, flower_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, player_ents, screen_w, screen_h, psx, psy, has_player_screen)
-    self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
+
+    for _, ent in ipairs(touchstone_ents) do
+        if ent ~= nil and ent:IsValid() and ent.prefab == "resurrectionstone" then
+            local tx, _, tz = ent.Transform:GetWorldPosition()
+            self:CacheStaticTarget(self.cached_touchstones, tostring(ent.GUID), tx, tz, TARGET_PREFABS.resurrectionstone)
+        end
+    end
+    self:AppendCachedTargets(raw_candidates, player, self.cached_touchstones, screen_w, screen_h, psx, psy, has_player_screen)
 
     local has_real_pigking = false
     for _, ent in ipairs(king_ents) do
         if ent ~= nil and ent:IsValid() and ent.prefab == "pigking" then
             has_real_pigking = true
-            self:AppendMatches(raw_candidates, seen_guids, player, { ent }, screen_w, screen_h, psx, psy, has_player_screen, PIGKING_ENTITY_RADIUS)
+            local kx, _, kz = ent.Transform:GetWorldPosition()
+            self.cached_pigking_actual = { x = kx, z = kz }
         end
     end
 
-    if not has_real_pigking then
+    if self.cached_pigking_actual ~= nil then
+        self:AppendPointTarget(raw_candidates, player, self.cached_pigking_actual.x, self.cached_pigking_actual.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking, false)
+    elseif not has_real_pigking then
         local pigking_target = self:GetBestPigKingTopologyTarget(player)
         if pigking_target ~= nil then
-            self:AppendPointTarget(raw_candidates, player, pigking_target.x, pigking_target.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking)
+            self:AppendPointTarget(raw_candidates, player, pigking_target.x, pigking_target.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking, false)
         end
     end
 

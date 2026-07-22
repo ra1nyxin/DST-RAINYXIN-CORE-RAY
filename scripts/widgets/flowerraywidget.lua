@@ -4,7 +4,9 @@ local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 
 local UPDATE_INTERVAL = 0.1
+local TOPOLOGY_SCAN_INTERVAL = 2
 local SEARCH_RADIUS = 100
+local PIGKING_ENTITY_RADIUS = 160
 local RING_RADIUS = 104
 local PLAYER_SCREEN_Y_OFFSET = 28
 local LABEL_FONT_SIZE = 19
@@ -16,12 +18,16 @@ local PLAYER_MUST_TAGS = { "player" }
 local PLAYER_CANT_TAGS = { "INLIMBO", "playerghost", "FX", "DECOR" }
 local TOUCHSTONE_MUST_TAGS = { "resurrector" }
 local TOUCHSTONE_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
+local PIGKING_MUST_TAGS = { "king" }
+local PIGKING_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
+local PIGKING_NODE_PREFIXES = { "PigKingdom", "PigCity" }
 local PLAYER_TARGET = { label = "人", color = { 1, 1, 1, 0.95 } }
 local TARGET_PREFABS = {
     flower = { label = "花", color = { 1, 0.95, 0.3, 0.95 } },
     flower_evil = { label = "花", color = { 1, 0.8, 0.3, 0.95 } },
     flower_rose = { label = "花", color = { 1, 0.7, 0.85, 0.95 } },
     butterfly = { label = "蝶", color = { 1, 0.9, 0.45, 0.95 } },
+    pigking = { label = "猪王", color = { 1, 0.72, 0.22, 0.98 } },
     resurrectionstone = { label = "试金石", color = { 0.7, 0.95, 1, 0.95 } },
 }
 
@@ -58,12 +64,47 @@ local function GetScreenPoint(x, y, z)
     return nil, nil, false
 end
 
+local function ComputeNodeCenter(node)
+    if node == nil then
+        return nil, nil
+    end
+
+    local cent = node.cent
+    if cent ~= nil and cent[1] ~= nil and cent[2] ~= nil then
+        return cent[1], cent[2]
+    end
+
+    if node.x ~= nil and node.y ~= nil then
+        return node.x, node.y
+    end
+
+    local poly = node.poly
+    if poly == nil or #poly == 0 then
+        return nil, nil
+    end
+
+    local sum_x = 0
+    local sum_z = 0
+    for i = 1, #poly do
+        local point = poly[i]
+        if point ~= nil and point[1] ~= nil and point[2] ~= nil then
+            sum_x = sum_x + point[1]
+            sum_z = sum_z + point[2]
+        end
+    end
+
+    return sum_x / #poly, sum_z / #poly
+end
+
 local FlowerRayWidget = Class(Widget, function(self, owner)
     Widget._ctor(self, "FlowerRayWidget")
 
     self.owner = owner
     self.elapsed = 0
     self.labels = {}
+    self.cached_pigking_targets = nil
+    self.cached_pigking_world = nil
+    self.next_topology_scan_time = 0
 
     if self.SetHAnchor ~= nil then
         self:SetHAnchor(_G.ANCHOR_MIDDLE)
@@ -99,8 +140,130 @@ function FlowerRayWidget:GetTrackedPlayer()
     return _G.ThePlayer
 end
 
-function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents, screen_w, screen_h, psx, psy, has_player_screen)
+function FlowerRayWidget:ResetPigKingCache()
+    self.cached_pigking_targets = nil
+    self.cached_pigking_world = nil
+    self.next_topology_scan_time = 0
+end
+
+function FlowerRayWidget:RefreshPigKingTopologyCache()
+    local world = _G.TheWorld
+    local topology = world ~= nil and world.topology or nil
+    local targets = {}
+
+    if topology ~= nil and topology.ids ~= nil and topology.nodes ~= nil then
+        for index, node_id in ipairs(topology.ids) do
+            if type(node_id) == "string" then
+                for _, prefix in ipairs(PIGKING_NODE_PREFIXES) do
+                    if node_id == prefix or node_id:find(prefix, 1, true) ~= nil then
+                        local node = topology.nodes[index]
+                        local x, z = ComputeNodeCenter(node)
+                        if x ~= nil and z ~= nil then
+                            targets[#targets + 1] = {
+                                x = x,
+                                z = z,
+                                node_id = node_id,
+                            }
+                        end
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    self.cached_pigking_targets = targets
+    self.cached_pigking_world = world
+end
+
+function FlowerRayWidget:EnsurePigKingTopologyCache()
+    local world = _G.TheWorld
+    if self.cached_pigking_world ~= world then
+        self:ResetPigKingCache()
+    end
+
+    local now = _G.GetTime ~= nil and _G.GetTime() or 0
+    if self.cached_pigking_targets ~= nil and now < self.next_topology_scan_time then
+        return
+    end
+
+    self.next_topology_scan_time = now + TOPOLOGY_SCAN_INTERVAL
+    self:RefreshPigKingTopologyCache()
+end
+
+function FlowerRayWidget:GetBestPigKingTopologyTarget(player)
+    self:EnsurePigKingTopologyCache()
+
+    local targets = self.cached_pigking_targets
+    if targets == nil or targets[1] == nil then
+        return nil
+    end
+
+    local px, _, pz = player.Transform:GetWorldPosition()
+    local best_target = nil
+    local best_dist_sq = nil
+
+    for i = 1, #targets do
+        local target = targets[i]
+        local dx = target.x - px
+        local dz = target.z - pz
+        local dist_sq = dx * dx + dz * dz
+        if best_dist_sq == nil or dist_sq < best_dist_sq then
+            best_target = target
+            best_dist_sq = dist_sq
+        end
+    end
+
+    return best_target
+end
+
+function FlowerRayWidget:AppendPointTarget(raw_candidates, player, world_x, world_z, screen_w, screen_h, psx, psy, has_player_screen, target)
+    if world_x == nil or world_z == nil or target == nil then
+        return
+    end
+
     local px, py, pz = player.Transform:GetWorldPosition()
+    local world_dx = world_x - px
+    local world_dz = world_z - pz
+    local dist_sq = world_dx * world_dx + world_dz * world_dz
+
+    if dist_sq <= 0.01 then
+        return
+    end
+
+    local dx, dy
+    local has_screen_point = false
+    local fsx, fsy, ok = GetScreenPoint(world_x, py, world_z)
+    if ok and has_player_screen then
+        dx = fsx - psx
+        dy = fsy - psy
+        has_screen_point = true
+    else
+        dx, dy = ApproximateScreenDelta(world_dx, world_dz)
+    end
+
+    local len_sq = dx * dx + dy * dy
+    if len_sq <= 1 then
+        return
+    end
+
+    raw_candidates[#raw_candidates + 1] = {
+        dx = dx,
+        dy = dy,
+        dist = math.sqrt(dist_sq),
+        screen_w = screen_w,
+        screen_h = screen_h,
+        player_sx = psx,
+        player_sy = psy,
+        has_player_screen = has_player_screen,
+        text = target.label,
+        color = target.color,
+    }
+end
+
+function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents, screen_w, screen_h, psx, psy, has_player_screen, max_distance)
+    local px, py, pz = player.Transform:GetWorldPosition()
+    local max_dist = max_distance or SEARCH_RADIUS
 
     for _, ent in ipairs(ents) do
         local target = ent ~= nil and ent:IsValid() and TARGET_PREFABS[ent.prefab] or nil
@@ -114,7 +277,7 @@ function FlowerRayWidget:AppendMatches(raw_candidates, seen_guids, player, ents,
             local world_dz = fz - pz
             local dist_sq = world_dx * world_dx + world_dz * world_dz
 
-            if dist_sq > 0.01 and dist_sq <= SEARCH_RADIUS * SEARCH_RADIUS then
+            if dist_sq > 0.01 and dist_sq <= max_dist * max_dist then
                 local dx, dy
                 local has_screen_point = false
                 local fsx, fsy, ok = GetScreenPoint(fx, fy, fz)
@@ -156,6 +319,7 @@ function FlowerRayWidget:CollectTargets(player)
     local butterfly_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, BUTTERFLY_MUST_TAGS, BUTTERFLY_CANT_TAGS)
     local player_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, PLAYER_MUST_TAGS, PLAYER_CANT_TAGS)
     local touchstone_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, TOUCHSTONE_MUST_TAGS, TOUCHSTONE_CANT_TAGS)
+    local king_ents = _G.TheSim:FindEntities(px, py, pz, PIGKING_ENTITY_RADIUS, PIGKING_MUST_TAGS, PIGKING_CANT_TAGS)
 
     local psx, psy, has_player_screen = GetScreenPoint(px, py, pz)
     local screen_w, screen_h = 0, 0
@@ -167,6 +331,21 @@ function FlowerRayWidget:CollectTargets(player)
     self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, player_ents, screen_w, screen_h, psx, psy, has_player_screen)
     self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
+
+    local has_real_pigking = false
+    for _, ent in ipairs(king_ents) do
+        if ent ~= nil and ent:IsValid() and ent.prefab == "pigking" then
+            has_real_pigking = true
+            self:AppendMatches(raw_candidates, seen_guids, player, { ent }, screen_w, screen_h, psx, psy, has_player_screen, PIGKING_ENTITY_RADIUS)
+        end
+    end
+
+    if not has_real_pigking then
+        local pigking_target = self:GetBestPigKingTopologyTarget(player)
+        if pigking_target ~= nil then
+            self:AppendPointTarget(raw_candidates, player, pigking_target.x, pigking_target.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking)
+        end
+    end
 
     table.sort(raw_candidates, function(a, b)
         if a.dist == b.dist then

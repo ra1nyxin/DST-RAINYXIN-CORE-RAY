@@ -14,9 +14,10 @@ Current features:
 - The interaction reach tweak is also experimental and mainly intended to probe how far client-side action distance changes can still be accepted by the server.
 - The faster-attack tweak is another sync-boundary experiment and may still be limited by server-side combat timing.
 - The earlier `1.1x` and `1.05x` movement-speed experiments were removed after repeated rubber-banding tests showed that movement sync is enforced too tightly.
+- Adds a Pig King direction label that can keep pointing toward the Pig King from far away by reading client-side world topology and keeping the inferred location in memory only for the current session.
 ]]
 author = "ra1nyxin"
-version = "0.1.24"
+version = "0.1.25"
 
 forumthread = ""
 api_version = 10
@@ -43,4 +44,5 @@ server_filter_tags = {
     "reach",
     "attack",
     "touch stone",
+    "pig king",
 }

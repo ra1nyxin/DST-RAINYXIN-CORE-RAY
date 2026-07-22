@@ -33,7 +33,17 @@ local TARGET_PREFABS = {
 
 local DEGREES = _G.DEGREES or (math.pi / 180)
 
-local function RotateByHeading(dx, dz)
+local function ApproximateScreenDelta(dx, dz)
+    if _G.TheCamera ~= nil and _G.TheCamera.GetRightVec ~= nil and _G.TheCamera.GetDownVec ~= nil then
+        local right = _G.TheCamera:GetRightVec()
+        local down = _G.TheCamera:GetDownVec()
+        if right ~= nil and down ~= nil then
+            local sx = dx * right.x + dz * right.z
+            local sy = -(dx * down.x + dz * down.z)
+            return sx, sy
+        end
+    end
+
     local heading = 45
     if _G.TheCamera ~= nil then
         if _G.TheCamera.GetHeadingTarget ~= nil then
@@ -46,11 +56,8 @@ local function RotateByHeading(dx, dz)
     local radians = -heading * DEGREES
     local cos_h = math.cos(radians)
     local sin_h = math.sin(radians)
-    return dx * cos_h - dz * sin_h, dx * sin_h + dz * cos_h
-end
-
-local function ApproximateScreenDelta(dx, dz)
-    local rx, rz = RotateByHeading(dx, dz)
+    local rx = dx * cos_h - dz * sin_h
+    local rz = dx * sin_h + dz * cos_h
     return rx - rz, -(rx + rz) * 0.5
 end
 

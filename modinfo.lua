@@ -18,7 +18,7 @@ Current features:
 - Pig King and discovered Touch Stones now use memory-only cached world positions so their direction and distance labels can keep working anywhere on the map during the current play session.
 ]]
 author = "ra1nyxin"
-version = "0.1.26"
+version = "0.1.27"
 
 forumthread = ""
 api_version = 10

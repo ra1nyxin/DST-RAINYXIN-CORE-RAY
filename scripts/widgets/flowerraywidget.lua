@@ -51,7 +51,7 @@ end
 
 local function ApproximateScreenDelta(dx, dz)
     local rx, rz = RotateByHeading(dx, dz)
-    return rx - rz, -(rx + rz) * 0.5
+    return -(rx - rz), (rx + rz) * 0.5
 end
 
 local function GetScreenPoint(x, y, z)

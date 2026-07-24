@@ -3,7 +3,6 @@ local Class = _G.Class
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 local Image = require("widgets/image")
-local ImageButton = require("widgets/imagebutton")
 local GuideConfig = require("guideconfig")
 
 local PANEL_WIDTH = 420
@@ -67,26 +66,6 @@ local function CreateAlignedText(parent, width, size, color)
     return text
 end
 
-local function CreateHitButton(parent, width, height, onclick)
-    local button = parent:AddChild(ImageButton("images/ui.xml", "blank.tex", "blank.tex", "blank.tex", "blank.tex", "blank.tex"))
-    button:ForceImageSize(width, height)
-    button:SetClickable(true)
-    button.scale_on_focus = false
-    button.move_on_click = false
-    button.ignore_standard_scaling = true
-    button:SetNormalScale(1, 1, 1)
-    button:SetFocusScale(1, 1, 1)
-    button:SetImageNormalColour(1, 1, 1, 0)
-    button:SetImageFocusColour(1, 1, 1, 0)
-    button:SetImageDisabledColour(1, 1, 1, 0)
-    button:SetImageSelectedColour(1, 1, 1, 0)
-    if button.image ~= nil then
-        button.image:SetClickable(true)
-    end
-    button:SetOnClick(onclick)
-    return button
-end
-
 local GuideMenuWidget = Class(Widget, function(self, owner)
     Widget._ctor(self, "GuideMenuWidget")
 
@@ -94,6 +73,8 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
     self.rows = {}
     self.scroll_offset = 0
     self.hovered = false
+    self.hovered_row_index = nil
+    self.pressed_row_index = nil
     self.dragging = false
     self.drag_anchor_mouse_x = 0
     self.drag_anchor_mouse_y = 0
@@ -121,36 +102,17 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
     self.bg = CreatePanelRect(self, PANEL_WIDTH, PANEL_HEIGHT, BG_TINT)
     self.title_bg = CreatePanelRect(self, PANEL_WIDTH, TITLE_HEIGHT, TITLE_TINT)
     local top_y = PANEL_HEIGHT * 0.5
-    local title_y = top_y - PANEL_PADDING - TITLE_HEIGHT * 0.5
-    self.title_bg:SetPosition(0, title_y, 0)
+    self.title_y = top_y - PANEL_PADDING - TITLE_HEIGHT * 0.5
+    self.title_bg:SetPosition(0, self.title_y, 0)
 
     self.title = self:AddChild(Text(_G.CHATFONT, TITLE_FONT_SIZE, "RAY 指引菜单"))
     self.title:SetColour(TITLE_COLOR[1], TITLE_COLOR[2], TITLE_COLOR[3], TITLE_COLOR[4])
-    self.title:SetPosition(0, title_y, 0)
+    self.title:SetPosition(0, self.title_y, 0)
     self.title:SetClickable(false)
-
-    self.title_button = CreateHitButton(self, PANEL_WIDTH, TITLE_HEIGHT, function()
-        self:EndDrag()
-    end)
-    self.title_button:SetPosition(0, title_y, 0)
-    self.title_button.scale_on_focus = false
-    self.title_button.move_on_click = false
-    self.title_button:SetOnDown(function()
-        self:BeginDrag()
-    end)
-    self.title_button.ongainfocus = function()
-        self.hovered = true
-        self:MoveToFront()
-    end
-    self.title_button.OnLoseFocus = function()
-        if not self.dragging then
-            self.hovered = false
-        end
-    end
 
     self.hint = self:AddChild(Text(_G.CHATFONT, BODY_FONT_SIZE, "[Insert] 显隐  |  左键拖动标题  |  滚轮翻页"))
     self.hint:SetColour(HINT_COLOR[1], HINT_COLOR[2], HINT_COLOR[3], HINT_COLOR[4])
-    self.hint:SetPosition(0, title_y - TITLE_HEIGHT * 0.5 - 8 - HINT_HEIGHT * 0.5, 0)
+    self.hint:SetPosition(0, self.title_y - TITLE_HEIGHT * 0.5 - 8 - HINT_HEIGHT * 0.5, 0)
     self.hint:SetClickable(false)
 
     self.footer = self:AddChild(Text(_G.CHATFONT, BODY_FONT_SIZE, ""))
@@ -163,30 +125,15 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
     self.info:SetPosition(0, -PANEL_HEIGHT * 0.5 + PANEL_PADDING + 30, 0)
     self.info:SetClickable(false)
 
-    local list_top_y = title_y - TITLE_HEIGHT * 0.5 - 8 - HINT_HEIGHT - LIST_GAP_TOP - ROW_HEIGHT * 0.5
+    self.list_top_y = self.title_y - TITLE_HEIGHT * 0.5 - 8 - HINT_HEIGHT - LIST_GAP_TOP - ROW_HEIGHT * 0.5
     for i = 1, VISIBLE_ROWS do
-        local visible_index = i
-        local y = list_top_y - (visible_index - 1) * ROW_HEIGHT
+        local y = self.list_top_y - (i - 1) * ROW_HEIGHT
         local row = self:AddChild(Widget("guide_row_" .. i))
         row:SetPosition(0, y, 0)
-        row.base_tint = visible_index % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN
+        row.local_y = y
+        row.base_tint = i % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN
 
         row.bg = CreatePanelRect(row, LIST_WIDTH, ROW_HEIGHT - 2, row.base_tint)
-        row.button = CreateHitButton(row, LIST_WIDTH, ROW_HEIGHT, function()
-            self:ToggleVisibleRow(visible_index)
-        end)
-        row.button.scale_on_focus = false
-        row.button.move_on_click = false
-        row.button.ongainfocus = function()
-            self.hovered = true
-            row.bg:SetTint(ROW_TINT_FOCUS[1], ROW_TINT_FOCUS[2], ROW_TINT_FOCUS[3], ROW_TINT_FOCUS[4])
-        end
-        row.button.OnLoseFocus = function()
-            row.bg:SetTint(row.base_tint[1], row.base_tint[2], row.base_tint[3], row.base_tint[4])
-            if not self.dragging then
-                self.hovered = false
-            end
-        end
         row.text = CreateAlignedText(row, LIST_WIDTH - 18, BODY_FONT_SIZE, ENABLED_COLOR)
         row.text:SetPosition(8, 0, 0)
         self.rows[i] = row
@@ -207,6 +154,16 @@ function GuideMenuWidget:GetVisibleRange()
     return first_index, last_index
 end
 
+function GuideMenuWidget:GetWorldXY()
+    local world_pos = self:GetWorldPosition()
+    return world_pos ~= nil and world_pos.x or 0, world_pos ~= nil and world_pos.y or 0
+end
+
+function GuideMenuWidget:GetLocalMouse(mx, my)
+    local world_x, world_y = self:GetWorldXY()
+    return mx - world_x, my - world_y
+end
+
 function GuideMenuWidget:IsMouseInside(mx, my)
     if not GuideConfig.menu_visible then
         return false
@@ -215,19 +172,60 @@ function GuideMenuWidget:IsMouseInside(mx, my)
         return false
     end
 
-    local world_pos = self:GetWorldPosition()
-    local world_x = world_pos ~= nil and world_pos.x or 0
-    local world_y = world_pos ~= nil and world_pos.y or 0
+    local world_x, world_y = self:GetWorldXY()
     return mx >= world_x - PANEL_WIDTH * 0.5
         and mx <= world_x + PANEL_WIDTH * 0.5
         and my >= world_y - PANEL_HEIGHT * 0.5
         and my <= world_y + PANEL_HEIGHT * 0.5
 end
 
+function GuideMenuWidget:IsPointInRect(local_x, local_y, center_x, center_y, width, height)
+    return local_x >= center_x - width * 0.5
+        and local_x <= center_x + width * 0.5
+        and local_y >= center_y - height * 0.5
+        and local_y <= center_y + height * 0.5
+end
+
+function GuideMenuWidget:GetRowIndexAtMouse(mx, my)
+    if not self:IsMouseInside(mx, my) then
+        return nil
+    end
+
+    local local_x, local_y = self:GetLocalMouse(mx, my)
+    for i = 1, VISIBLE_ROWS do
+        local row = self.rows[i]
+        if row ~= nil and row.shown and self:IsPointInRect(local_x, local_y, 0, row.local_y, LIST_WIDTH, ROW_HEIGHT) then
+            return i
+        end
+    end
+    return nil
+end
+
+function GuideMenuWidget:IsMouseInTitle(mx, my)
+    if not self:IsMouseInside(mx, my) then
+        return false
+    end
+
+    local local_x, local_y = self:GetLocalMouse(mx, my)
+    return self:IsPointInRect(local_x, local_y, 0, self.title_y, PANEL_WIDTH, TITLE_HEIGHT)
+end
+
+function GuideMenuWidget:UpdateRowHighlights()
+    for i = 1, VISIBLE_ROWS do
+        local row = self.rows[i]
+        if row ~= nil then
+            local tint = self.hovered_row_index == i and ROW_TINT_FOCUS or row.base_tint
+            row.bg:SetTint(tint[1], tint[2], tint[3], tint[4])
+        end
+    end
+end
+
 function GuideMenuWidget:InstallInputHandlers()
     if self.mouse_move_handler == nil then
         self.mouse_move_handler = _G.TheInput:AddMoveHandler(function(mx, my)
             self.hovered = self:IsMouseInside(mx, my)
+            self.hovered_row_index = self:GetRowIndexAtMouse(mx, my)
+            self:UpdateRowHighlights()
             if self.dragging then
                 local next_x = self.drag_anchor_menu_x + (mx - self.drag_anchor_mouse_x)
                 local next_y = self.drag_anchor_menu_y + (my - self.drag_anchor_mouse_y)
@@ -238,9 +236,31 @@ function GuideMenuWidget:InstallInputHandlers()
     end
 
     if self.mouse_button_handler == nil then
-        self.mouse_button_handler = _G.TheInput:AddMouseButtonHandler(function(button, down)
-            if self.dragging and button == _G.MOUSEBUTTON_LEFT and not down then
-                self:EndDrag()
+        self.mouse_button_handler = _G.TheInput:AddMouseButtonHandler(function(button, down, x, y)
+            if button ~= _G.MOUSEBUTTON_LEFT or not GuideConfig.menu_visible then
+                return
+            end
+
+            x = x or _G.TheFrontEnd.lastx or 0
+            y = y or _G.TheFrontEnd.lasty or 0
+
+            if down then
+                if self:IsMouseInTitle(x, y) then
+                    self:BeginDrag(x, y)
+                    return
+                end
+                self.pressed_row_index = self:GetRowIndexAtMouse(x, y)
+            else
+                if self.dragging then
+                    self:EndDrag()
+                    return
+                end
+
+                local released_row_index = self:GetRowIndexAtMouse(x, y)
+                if self.pressed_row_index ~= nil and self.pressed_row_index == released_row_index then
+                    self:ToggleVisibleRow(released_row_index)
+                end
+                self.pressed_row_index = nil
             end
         end)
     end
@@ -264,15 +284,16 @@ function GuideMenuWidget:InstallInputHandlers()
     end
 end
 
-function GuideMenuWidget:BeginDrag()
+function GuideMenuWidget:BeginDrag(mx, my)
     if self.dragging then
         return
     end
 
     self.dragging = true
     self.hovered = true
-    self.drag_anchor_mouse_x = _G.TheFrontEnd.lastx or 0
-    self.drag_anchor_mouse_y = _G.TheFrontEnd.lasty or 0
+    self.pressed_row_index = nil
+    self.drag_anchor_mouse_x = mx or _G.TheFrontEnd.lastx or 0
+    self.drag_anchor_mouse_y = my or _G.TheFrontEnd.lasty or 0
 
     local pos = self:GetPosition()
     self.drag_anchor_menu_x = pos.x
@@ -290,6 +311,7 @@ function GuideMenuWidget:EndDrag()
     end
 
     self.dragging = false
+    self.pressed_row_index = nil
     if _G.TheFrontEnd ~= nil then
         _G.TheFrontEnd:LockFocus(false)
     end
@@ -333,6 +355,8 @@ function GuideMenuWidget:RefreshRows()
         end
     end
 
+    self:UpdateRowHighlights()
+
     local first_index, last_index = self:GetVisibleRange()
     self.footer:SetString(string.format("列表 %d-%d / %d", first_index, last_index, #GuideConfig.target_rows))
 end
@@ -343,10 +367,14 @@ function GuideMenuWidget:SetMenuVisible(visible)
         self:Show()
         self:MoveToFront()
         self.hovered = false
+        self.hovered_row_index = nil
+        self.pressed_row_index = nil
         self:RefreshRows()
     else
         self:EndDrag()
         self.hovered = false
+        self.hovered_row_index = nil
+        self.pressed_row_index = nil
         self:Hide()
     end
 end

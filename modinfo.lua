@@ -21,7 +21,7 @@ Current features:
 - The guide menu now exposes a much larger translated landmark list, and major landmarks can be pointed to by topology/layout names without showing raw internal ids in the UI.
 ]]
 author = "ra1nyxin"
-version = "0.1.42"
+version = "0.1.43"
 
 forumthread = ""
 api_version = 10

@@ -70,7 +70,8 @@ end
 local function CreateHitButton(parent, width, height, onclick)
     local button = parent:AddChild(ImageButton("images/ui.xml", "blank.tex", "blank.tex", "blank.tex", "blank.tex", "blank.tex"))
     button:ForceImageSize(width, height)
-    button:SetClickable(true)
+    -- The Button root has no visual bounds. Only its scaled Image child may take mouse hits.
+    button:SetClickable(false)
     button.scale_on_focus = false
     button.move_on_click = false
     button.ignore_standard_scaling = true
@@ -86,6 +87,20 @@ local function CreateHitButton(parent, width, height, onclick)
     button.image.focus_forward = button
     button:SetOnClick(onclick)
     return button
+end
+
+local function AddScrollHandler(button, menu)
+    local old_on_control = button.OnControl
+    function button:OnControl(control, down)
+        if down and GuideConfig.menu_visible then
+            if control == _G.CONTROL_SCROLLBACK and menu:ScrollBy(-SCROLL_STEP) then
+                return true
+            elseif control == _G.CONTROL_SCROLLFWD and menu:ScrollBy(SCROLL_STEP) then
+                return true
+            end
+        end
+        return old_on_control(self, control, down)
+    end
 end
 
 local GuideMenuWidget = Class(Widget, function(self, owner)
@@ -135,6 +150,7 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
     self.title_button:SetOnDown(function()
         self:BeginDrag()
     end)
+    AddScrollHandler(self.title_button, self)
 
     self.hint = self:AddChild(Text(_G.CHATFONT, BODY_FONT_SIZE, "[Insert] 显隐  |  左键拖动标题  |  滚轮翻页"))
     self.hint:SetColour(HINT_COLOR[1], HINT_COLOR[2], HINT_COLOR[3], HINT_COLOR[4])
@@ -170,6 +186,7 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
         row.button:SetOnLoseFocus(function()
             row.bg:SetTint(row.base_tint[1], row.base_tint[2], row.base_tint[3], row.base_tint[4])
         end)
+        AddScrollHandler(row.button, self)
         row.text = CreateAlignedText(row, LIST_WIDTH - 18, BODY_FONT_SIZE, ENABLED_COLOR)
         row.text:SetPosition(8, 0, 0)
         self.rows[i] = row
@@ -202,17 +219,6 @@ function GuideMenuWidget:InstallInputHandlers()
         end)
     end
 
-end
-
-function GuideMenuWidget:OnControl(control, down)
-    if GuideConfig.menu_visible and down then
-        if control == _G.CONTROL_SCROLLBACK and self:ScrollBy(-SCROLL_STEP) then
-            return true
-        elseif control == _G.CONTROL_SCROLLFWD and self:ScrollBy(SCROLL_STEP) then
-            return true
-        end
-    end
-    return Widget.OnControl(self, control, down)
 end
 
 function GuideMenuWidget:BeginDrag()

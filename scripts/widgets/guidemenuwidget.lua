@@ -70,6 +70,7 @@ end
 local function CreateHitButton(parent, width, height, onclick)
     local button = parent:AddChild(ImageButton("images/ui.xml", "blank.tex", "blank.tex", "blank.tex", "blank.tex", "blank.tex"))
     button:ForceImageSize(width, height)
+    button:SetClickable(true)
     button.scale_on_focus = false
     button.move_on_click = false
     button.ignore_standard_scaling = true
@@ -79,6 +80,9 @@ local function CreateHitButton(parent, width, height, onclick)
     button:SetImageFocusColour(1, 1, 1, 0)
     button:SetImageDisabledColour(1, 1, 1, 0)
     button:SetImageSelectedColour(1, 1, 1, 0)
+    if button.image ~= nil then
+        button.image:SetClickable(true)
+    end
     button:SetOnClick(onclick)
     return button
 end

@@ -2,6 +2,7 @@ local _G = _G
 local Class = _G.Class
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
+local GuideConfig = require("guideconfig")
 
 local UPDATE_INTERVAL = 0.1
 local TOPOLOGY_SCAN_INTERVAL = 2
@@ -18,13 +19,31 @@ local TOUCHSTONE_MUST_TAGS = { "resurrector" }
 local TOUCHSTONE_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
 local PIGKING_MUST_TAGS = { "king" }
 local PIGKING_CANT_TAGS = { "INLIMBO", "NOCLICK", "FX", "DECOR" }
-local PIGKING_NODE_PREFIXES = { "PigKingdom", "PigCity" }
 local PLAYER_TARGET = { label = "人", color = { 1, 1, 1, 0.95 } }
 local TARGET_PREFABS = {
     butterfly = { label = "蝶", color = { 1, 0.9, 0.45, 0.95 } },
     pigking = { label = "猪王", color = { 1, 0.72, 0.22, 0.98 } },
     resurrectionstone = { label = "试金石", color = { 0.7, 0.95, 1, 0.95 } },
 }
+local TOPOLOGY_TARGET_DEFS = {
+    pigking = { target = TARGET_PREFABS.pigking, node_patterns = { "PigKingdom", "PigCity", "PigVillage" } },
+    touchstone = { target = TARGET_PREFABS.resurrectionstone, node_patterns = { "ResurrectionStone" } },
+}
+
+for i = 1, #(GuideConfig.topology_target_order or {}) do
+    local key = GuideConfig.topology_target_order[i]
+    local def = GuideConfig.topology_targets ~= nil and GuideConfig.topology_targets[key] or nil
+    if def ~= nil then
+        TARGET_PREFABS[key] = {
+            label = def.label or def.menu_label or key,
+            color = def.color or { 1, 1, 1, 0.96 },
+        }
+        TOPOLOGY_TARGET_DEFS[key] = {
+            target = TARGET_PREFABS[key],
+            node_patterns = def.node_patterns or {},
+        }
+    end
+end
 
 local DEGREES = _G.DEGREES or (math.pi / 180)
 
@@ -98,8 +117,10 @@ local function ComputeNodeCenter(node)
     return sum_x / #poly, sum_z / #poly
 end
 
-local function HasNodeSuffix(node_id, suffix)
-    return node_id == suffix or node_id:sub(-#suffix) == suffix
+local function NodeMatchesPattern(node_id, pattern)
+    return node_id == pattern
+        or node_id:find(pattern, 1, true) ~= nil
+        or node_id:sub(-#pattern) == pattern
 end
 
 local FlowerRayWidget = Class(Widget, function(self, owner)
@@ -109,11 +130,11 @@ local FlowerRayWidget = Class(Widget, function(self, owner)
     self.elapsed = 0
     self.labels = {}
     self.cached_world = nil
-    self.cached_pigking_targets = nil
-    self.cached_pigking_world = nil
+    self.cached_topology_targets = {}
+    self.cached_topology_world = nil
     self.cached_pigking_actual = nil
     self.cached_touchstones = {}
-    self.next_topology_scan_time = 0
+    self.next_topology_scan_times = {}
 
     if self.SetHAnchor ~= nil then
         self:SetHAnchor(_G.ANCHOR_MIDDLE)
@@ -151,11 +172,11 @@ end
 
 function FlowerRayWidget:ResetWorldCaches()
     self.cached_world = _G.TheWorld
-    self.cached_pigking_targets = nil
-    self.cached_pigking_world = nil
+    self.cached_topology_targets = {}
+    self.cached_topology_world = nil
     self.cached_pigking_actual = nil
     self.cached_touchstones = {}
-    self.next_topology_scan_time = 0
+    self.next_topology_scan_times = {}
 end
 
 function FlowerRayWidget:EnsureWorldCaches()
@@ -177,7 +198,12 @@ function FlowerRayWidget:CacheStaticTarget(cache, cache_id, world_x, world_z, ta
     }
 end
 
-function FlowerRayWidget:RefreshPigKingTopologyCache()
+function FlowerRayWidget:RefreshTopologyTargetCache(target_key)
+    local def = TOPOLOGY_TARGET_DEFS[target_key]
+    if def == nil then
+        return
+    end
+
     local world = _G.TheWorld
     local topology = world ~= nil and world.topology or nil
     local targets = {}
@@ -185,8 +211,8 @@ function FlowerRayWidget:RefreshPigKingTopologyCache()
     if topology ~= nil and topology.ids ~= nil and topology.nodes ~= nil then
         for index, node_id in ipairs(topology.ids) do
             if type(node_id) == "string" then
-                for _, prefix in ipairs(PIGKING_NODE_PREFIXES) do
-                    if HasNodeSuffix(node_id, prefix) then
+                for _, pattern in ipairs(def.node_patterns) do
+                    if NodeMatchesPattern(node_id, pattern) then
                         local node = topology.nodes[index]
                         local x, z = ComputeNodeCenter(node)
                         if x ~= nil and z ~= nil then
@@ -203,29 +229,38 @@ function FlowerRayWidget:RefreshPigKingTopologyCache()
         end
     end
 
-    self.cached_pigking_targets = targets
-    self.cached_pigking_world = world
+    self.cached_topology_targets[target_key] = targets
+    self.cached_topology_world = world
 end
 
-function FlowerRayWidget:EnsurePigKingTopologyCache()
+function FlowerRayWidget:EnsureTopologyTargetCache(target_key)
+    local def = TOPOLOGY_TARGET_DEFS[target_key]
+    if def == nil then
+        return
+    end
+
     local world = _G.TheWorld
-    if self.cached_pigking_world ~= world then
+    if self.cached_topology_world ~= world then
         self:ResetWorldCaches()
     end
 
     local now = _G.GetTime ~= nil and _G.GetTime() or 0
-    if self.cached_pigking_targets ~= nil and now < self.next_topology_scan_time then
+    if self.cached_topology_targets[target_key] ~= nil and now < (self.next_topology_scan_times[target_key] or 0) then
         return
     end
 
-    self.next_topology_scan_time = now + TOPOLOGY_SCAN_INTERVAL
-    self:RefreshPigKingTopologyCache()
+    self.next_topology_scan_times[target_key] = now + TOPOLOGY_SCAN_INTERVAL
+    self:RefreshTopologyTargetCache(target_key)
 end
 
-function FlowerRayWidget:GetBestPigKingTopologyTarget(player)
-    self:EnsurePigKingTopologyCache()
+function FlowerRayWidget:GetBestTopologyTarget(player, target_key)
+    self:EnsureTopologyTargetCache(target_key)
 
-    local targets = self.cached_pigking_targets
+    local def = TOPOLOGY_TARGET_DEFS[target_key]
+    local targets = self.cached_topology_targets[target_key]
+    if def == nil then
+        return nil
+    end
     if targets == nil or targets[1] == nil then
         return nil
     end
@@ -246,6 +281,18 @@ function FlowerRayWidget:GetBestPigKingTopologyTarget(player)
     end
 
     return best_target
+end
+
+function FlowerRayWidget:AppendBestTopologyTarget(raw_candidates, player, target_key, screen_w, screen_h, psx, psy, has_player_screen)
+    local def = TOPOLOGY_TARGET_DEFS[target_key]
+    if def == nil then
+        return
+    end
+
+    local target = self:GetBestTopologyTarget(player, target_key)
+    if target ~= nil then
+        self:AppendPointTarget(raw_candidates, player, target.x, target.z, screen_w, screen_h, psx, psy, has_player_screen, def.target, false)
+    end
 end
 
 function FlowerRayWidget:AppendPointTarget(raw_candidates, player, world_x, world_z, screen_w, screen_h, psx, psy, has_player_screen, target, use_screen_projection)
@@ -364,10 +411,10 @@ function FlowerRayWidget:CollectTargets(player)
     local px, py, pz = player.Transform:GetWorldPosition()
     local raw_candidates = {}
     local seen_guids = {}
-    local butterfly_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, BUTTERFLY_MUST_TAGS, BUTTERFLY_CANT_TAGS)
-    local player_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, PLAYER_MUST_TAGS, PLAYER_CANT_TAGS)
-    local touchstone_ents = _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, TOUCHSTONE_MUST_TAGS, TOUCHSTONE_CANT_TAGS)
-    local king_ents = _G.TheSim:FindEntities(px, py, pz, PIGKING_ENTITY_RADIUS, PIGKING_MUST_TAGS, PIGKING_CANT_TAGS)
+    local butterfly_ents = GuideConfig:IsEnabled("butterfly") and _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, BUTTERFLY_MUST_TAGS, BUTTERFLY_CANT_TAGS) or {}
+    local player_ents = GuideConfig:IsEnabled("players") and _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, PLAYER_MUST_TAGS, PLAYER_CANT_TAGS) or {}
+    local touchstone_ents = GuideConfig:IsEnabled("touchstone") and _G.TheSim:FindEntities(px, py, pz, SEARCH_RADIUS, TOUCHSTONE_MUST_TAGS, TOUCHSTONE_CANT_TAGS) or {}
+    local king_ents = GuideConfig:IsEnabled("pigking") and _G.TheSim:FindEntities(px, py, pz, PIGKING_ENTITY_RADIUS, PIGKING_MUST_TAGS, PIGKING_CANT_TAGS) or {}
 
     local psx, psy, has_player_screen = GetScreenPoint(px, py, pz)
     local screen_w, screen_h = 0, 0
@@ -375,40 +422,57 @@ function FlowerRayWidget:CollectTargets(player)
         screen_w, screen_h = _G.TheSim:GetScreenSize()
     end
 
-    self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
-    self:AppendMatches(raw_candidates, seen_guids, player, player_ents, screen_w, screen_h, psx, psy, has_player_screen)
-    self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
-
-    for _, ent in ipairs(touchstone_ents) do
-        if ent ~= nil and ent:IsValid() and ent.prefab == "resurrectionstone" then
-            local tx, _, tz = ent.Transform:GetWorldPosition()
-            self:CacheStaticTarget(self.cached_touchstones, tostring(ent.GUID), tx, tz, TARGET_PREFABS.resurrectionstone)
-        end
+    if GuideConfig:IsEnabled("butterfly") then
+        self:AppendMatches(raw_candidates, seen_guids, player, butterfly_ents, screen_w, screen_h, psx, psy, has_player_screen)
     end
-    local cached_touchstones = {}
-    for cache_id, entry in pairs(self.cached_touchstones) do
-        if not seen_guids[tonumber(cache_id)] then
-            cached_touchstones[cache_id] = entry
-        end
+    if GuideConfig:IsEnabled("players") then
+        self:AppendMatches(raw_candidates, seen_guids, player, player_ents, screen_w, screen_h, psx, psy, has_player_screen)
     end
-    self:AppendCachedTargets(raw_candidates, player, cached_touchstones, screen_w, screen_h, psx, psy, has_player_screen)
-
-    local has_real_pigking = false
-    for _, ent in ipairs(king_ents) do
-        if ent ~= nil and ent:IsValid() and ent.prefab == "pigking" then
-            has_real_pigking = true
-            local kx, _, kz = ent.Transform:GetWorldPosition()
-            self.cached_pigking_actual = { x = kx, z = kz }
-            self:AppendMatches(raw_candidates, seen_guids, player, { ent }, screen_w, screen_h, psx, psy, has_player_screen, PIGKING_ENTITY_RADIUS)
-        end
+    if GuideConfig:IsEnabled("touchstone") then
+        self:AppendMatches(raw_candidates, seen_guids, player, touchstone_ents, screen_w, screen_h, psx, psy, has_player_screen)
     end
 
-    if not has_real_pigking and self.cached_pigking_actual ~= nil then
-        self:AppendPointTarget(raw_candidates, player, self.cached_pigking_actual.x, self.cached_pigking_actual.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking, false)
-    elseif not has_real_pigking then
-        local pigking_target = self:GetBestPigKingTopologyTarget(player)
-        if pigking_target ~= nil then
-            self:AppendPointTarget(raw_candidates, player, pigking_target.x, pigking_target.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking, false)
+    if GuideConfig:IsEnabled("touchstone") then
+        for _, ent in ipairs(touchstone_ents) do
+            if ent ~= nil and ent:IsValid() and ent.prefab == "resurrectionstone" then
+                local tx, _, tz = ent.Transform:GetWorldPosition()
+                self:CacheStaticTarget(self.cached_touchstones, tostring(ent.GUID), tx, tz, TARGET_PREFABS.resurrectionstone)
+            end
+        end
+        local cached_touchstones = {}
+        for cache_id, entry in pairs(self.cached_touchstones) do
+            if not seen_guids[tonumber(cache_id)] then
+                cached_touchstones[cache_id] = entry
+            end
+        end
+        self:AppendCachedTargets(raw_candidates, player, cached_touchstones, screen_w, screen_h, psx, psy, has_player_screen)
+        if next(cached_touchstones) == nil and (touchstone_ents == nil or touchstone_ents[1] == nil) then
+            self:AppendBestTopologyTarget(raw_candidates, player, "touchstone", screen_w, screen_h, psx, psy, has_player_screen)
+        end
+    end
+
+    if GuideConfig:IsEnabled("pigking") then
+        local has_real_pigking = false
+        for _, ent in ipairs(king_ents) do
+            if ent ~= nil and ent:IsValid() and ent.prefab == "pigking" then
+                has_real_pigking = true
+                local kx, _, kz = ent.Transform:GetWorldPosition()
+                self.cached_pigking_actual = { x = kx, z = kz }
+                self:AppendMatches(raw_candidates, seen_guids, player, { ent }, screen_w, screen_h, psx, psy, has_player_screen, PIGKING_ENTITY_RADIUS)
+            end
+        end
+
+        if not has_real_pigking and self.cached_pigking_actual ~= nil then
+            self:AppendPointTarget(raw_candidates, player, self.cached_pigking_actual.x, self.cached_pigking_actual.z, screen_w, screen_h, psx, psy, has_player_screen, TARGET_PREFABS.pigking, false)
+        elseif not has_real_pigking then
+            self:AppendBestTopologyTarget(raw_candidates, player, "pigking", screen_w, screen_h, psx, psy, has_player_screen)
+        end
+    end
+
+    for i = 1, #(GuideConfig.topology_target_order or {}) do
+        local target_key = GuideConfig.topology_target_order[i]
+        if GuideConfig:IsEnabled(target_key) then
+            self:AppendBestTopologyTarget(raw_candidates, player, target_key, screen_w, screen_h, psx, psy, has_player_screen)
         end
     end
 

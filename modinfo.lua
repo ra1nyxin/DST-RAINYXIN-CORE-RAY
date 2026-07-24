@@ -17,9 +17,11 @@ Current features:
 - Adds a Pig King direction label that can keep pointing toward the Pig King from far away by reading client-side world topology and keeping the inferred location in memory only for the current session.
 - Pig King and discovered Touch Stones now use memory-only cached world positions so their direction and distance labels can keep working anywhere on the map during the current play session.
 - Flower tracking has been removed because nearby butterflies already imply nearby flowers, keeping the guidance list cleaner.
+- Adds an Insert-toggle draggable in-game guide menu built from code-only text widgets instead of borrowing atlas art.
+- The guide menu now exposes a much larger translated landmark list, and major landmarks can be pointed to by topology/layout names without showing raw internal ids in the UI.
 ]]
 author = "ra1nyxin"
-version = "0.1.31"
+version = "0.1.35"
 
 forumthread = ""
 api_version = 10

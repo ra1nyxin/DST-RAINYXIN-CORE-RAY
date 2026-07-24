@@ -3,20 +3,30 @@ local Class = _G.Class
 local Widget = require("widgets/widget")
 local Text = require("widgets/text")
 local Image = require("widgets/image")
-local TEMPLATES = require("widgets/templates")
+local ImageButton = require("widgets/imagebutton")
 local GuideConfig = require("guideconfig")
 
 local PANEL_WIDTH = 420
 local PANEL_PADDING = 12
 local TITLE_HEIGHT = 34
+local HINT_HEIGHT = 24
 local BODY_FONT_SIZE = 18
 local TITLE_FONT_SIZE = 24
 local ROW_HEIGHT = 28
 local VISIBLE_ROWS = 10
-local FOOTER_HEIGHT = 54
-local PANEL_HEIGHT = TITLE_HEIGHT + 26 + VISIBLE_ROWS * ROW_HEIGHT + FOOTER_HEIGHT
+local LIST_GAP_TOP = 12
+local INFO_GAP_TOP = 8
+local FOOTER_HEIGHT = 44
+local PANEL_HEIGHT = PANEL_PADDING
+    + TITLE_HEIGHT
+    + 8
+    + HINT_HEIGHT
+    + LIST_GAP_TOP
+    + VISIBLE_ROWS * ROW_HEIGHT
+    + INFO_GAP_TOP
+    + FOOTER_HEIGHT
+    + PANEL_PADDING
 local LIST_WIDTH = PANEL_WIDTH - PANEL_PADDING * 2
-local LIST_TOP_Y = -56
 local SCROLL_STEP = 1
 
 local BG_TINT = { 0.06, 0.07, 0.08, 0.90 }
@@ -57,6 +67,22 @@ local function CreateAlignedText(parent, width, size, color)
     return text
 end
 
+local function CreateHitButton(parent, width, height, onclick)
+    local button = parent:AddChild(ImageButton("images/ui.xml", "blank.tex", "blank.tex", "blank.tex", "blank.tex", "blank.tex"))
+    button:ForceImageSize(width, height)
+    button.scale_on_focus = false
+    button.move_on_click = false
+    button.ignore_standard_scaling = true
+    button:SetNormalScale(1, 1, 1)
+    button:SetFocusScale(1, 1, 1)
+    button:SetImageNormalColour(1, 1, 1, 0)
+    button:SetImageFocusColour(1, 1, 1, 0)
+    button:SetImageDisabledColour(1, 1, 1, 0)
+    button:SetImageSelectedColour(1, 1, 1, 0)
+    button:SetOnClick(onclick)
+    return button
+end
+
 local GuideMenuWidget = Class(Widget, function(self, owner)
     Widget._ctor(self, "GuideMenuWidget")
 
@@ -90,17 +116,19 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
 
     self.bg = CreatePanelRect(self, PANEL_WIDTH, PANEL_HEIGHT, BG_TINT)
     self.title_bg = CreatePanelRect(self, PANEL_WIDTH, TITLE_HEIGHT, TITLE_TINT)
-    self.title_bg:SetPosition(0, PANEL_HEIGHT * 0.5 - TITLE_HEIGHT * 0.5, 0)
+    local top_y = PANEL_HEIGHT * 0.5
+    local title_y = top_y - PANEL_PADDING - TITLE_HEIGHT * 0.5
+    self.title_bg:SetPosition(0, title_y, 0)
 
     self.title = self:AddChild(Text(_G.CHATFONT, TITLE_FONT_SIZE, "RAY 指引菜单"))
     self.title:SetColour(TITLE_COLOR[1], TITLE_COLOR[2], TITLE_COLOR[3], TITLE_COLOR[4])
-    self.title:SetPosition(0, PANEL_HEIGHT * 0.5 - TITLE_HEIGHT * 0.5, 0)
+    self.title:SetPosition(0, title_y, 0)
     self.title:SetClickable(false)
 
-    self.title_button = self:AddChild(TEMPLATES.InvisibleButton(PANEL_WIDTH, TITLE_HEIGHT, function()
+    self.title_button = CreateHitButton(self, PANEL_WIDTH, TITLE_HEIGHT, function()
         self:EndDrag()
-    end))
-    self.title_button:SetPosition(0, PANEL_HEIGHT * 0.5 - TITLE_HEIGHT * 0.5, 0)
+    end)
+    self.title_button:SetPosition(0, title_y, 0)
     self.title_button.scale_on_focus = false
     self.title_button.move_on_click = false
     self.title_button:SetOnDown(function()
@@ -118,28 +146,31 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
 
     self.hint = self:AddChild(Text(_G.CHATFONT, BODY_FONT_SIZE, "[Insert] 显隐  |  左键拖动标题  |  滚轮翻页"))
     self.hint:SetColour(HINT_COLOR[1], HINT_COLOR[2], HINT_COLOR[3], HINT_COLOR[4])
-    self.hint:SetPosition(0, PANEL_HEIGHT * 0.5 - TITLE_HEIGHT - 16, 0)
+    self.hint:SetPosition(0, title_y - TITLE_HEIGHT * 0.5 - 8 - HINT_HEIGHT * 0.5, 0)
     self.hint:SetClickable(false)
 
     self.footer = self:AddChild(Text(_G.CHATFONT, BODY_FONT_SIZE, ""))
     self.footer:SetColour(FOOTER_COLOR[1], FOOTER_COLOR[2], FOOTER_COLOR[3], FOOTER_COLOR[4])
-    self.footer:SetPosition(0, -PANEL_HEIGHT * 0.5 + 18, 0)
+    self.footer:SetPosition(0, -PANEL_HEIGHT * 0.5 + PANEL_PADDING + 10, 0)
     self.footer:SetClickable(false)
 
     self.info = self:AddChild(Text(_G.CHATFONT, BODY_FONT_SIZE, "远处地标优先走拓扑/布局中心；试金石发现后会缓存。"))
     self.info:SetColour(FOOTER_COLOR[1], FOOTER_COLOR[2], FOOTER_COLOR[3], FOOTER_COLOR[4])
-    self.info:SetPosition(0, -PANEL_HEIGHT * 0.5 + 40, 0)
+    self.info:SetPosition(0, -PANEL_HEIGHT * 0.5 + PANEL_PADDING + 30, 0)
     self.info:SetClickable(false)
 
+    local list_top_y = title_y - TITLE_HEIGHT * 0.5 - 8 - HINT_HEIGHT - LIST_GAP_TOP - ROW_HEIGHT * 0.5
     for i = 1, VISIBLE_ROWS do
-        local y = LIST_TOP_Y - (i - 1) * ROW_HEIGHT
+        local visible_index = i
+        local y = list_top_y - (visible_index - 1) * ROW_HEIGHT
         local row = self:AddChild(Widget("guide_row_" .. i))
         row:SetPosition(0, y, 0)
+        row.base_tint = visible_index % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN
 
-        row.bg = CreatePanelRect(row, LIST_WIDTH, ROW_HEIGHT - 2, i % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN)
-        row.button = row:AddChild(TEMPLATES.InvisibleButton(LIST_WIDTH, ROW_HEIGHT, function()
-            self:ToggleVisibleRow(i)
-        end))
+        row.bg = CreatePanelRect(row, LIST_WIDTH, ROW_HEIGHT - 2, row.base_tint)
+        row.button = CreateHitButton(row, LIST_WIDTH, ROW_HEIGHT, function()
+            self:ToggleVisibleRow(visible_index)
+        end)
         row.button.scale_on_focus = false
         row.button.move_on_click = false
         row.button.ongainfocus = function()
@@ -147,7 +178,7 @@ local GuideMenuWidget = Class(Widget, function(self, owner)
             row.bg:SetTint(ROW_TINT_FOCUS[1], ROW_TINT_FOCUS[2], ROW_TINT_FOCUS[3], ROW_TINT_FOCUS[4])
         end
         row.button.OnLoseFocus = function()
-            row.bg:SetTint((i % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN)[1], (i % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN)[2], (i % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN)[3], (i % 2 == 1 and ROW_TINT_ODD or ROW_TINT_EVEN)[4])
+            row.bg:SetTint(row.base_tint[1], row.base_tint[2], row.base_tint[3], row.base_tint[4])
             if not self.dragging then
                 self.hovered = false
             end

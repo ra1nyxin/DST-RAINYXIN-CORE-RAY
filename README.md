@@ -28,6 +28,7 @@
 - 已记录：猪王远距离指引一开始只靠 `TheSim:FindEntities(...)` 根本不够，因为客户端拿不到同步半径外的猪王实体。
 - 已记录：猪王后来改成“近处真实实体优先，远处世界拓扑兜底”后才可用；而远距离方向近似如果只靠相机 heading，超过 `GetScreenPos(...)` 可用范围后很容易歪，最后换成 `TheCamera:GetRightVec()` / `GetDownVec()` 的向量近似才稳定。
 - 已记录：2026-07-24 这版可拖拽菜单第一次接世界前鼠标移动就崩，是因为 `widgets/widget:GetWorldPosition()` 返回的是 `Vector3`，不能直接写成 `local x, y = self:GetWorldPosition()` 后把 `x` / `y` 当纯数字参与面板命中判断；正确做法是先取返回对象，再读 `.x` / `.y`。
+- 已记录：2026-07-24 这版菜单的列表命中区第一次又出现“鼠标在右边外面也能选中、第一项和第二项错位”的问题，根因是 `TEMPLATES.InvisibleButton(...)` 更偏向小型控件用途，它内部按图片缩放语义处理尺寸，不适合直接拿来铺大列表点击层；大面板列表项应改成自建 `ImageButton(blank.tex)` 并配 `ForceImageSize(...)`。
 - 现在没有做外部配置文件开关。
 
 实现记录：

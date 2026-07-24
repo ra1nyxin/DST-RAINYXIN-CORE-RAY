@@ -5,7 +5,7 @@ local Text = require("widgets/text")
 local Image = require("widgets/image")
 local GuideConfig = require("guideconfig")
 
-local PANEL_WIDTH = 420
+local PANEL_WIDTH = 360
 local PANEL_PADDING = 12
 local TITLE_HEIGHT = 34
 local HINT_HEIGHT = 24
@@ -236,7 +236,7 @@ function GuideMenuWidget:InstallInputHandlers()
     end
 
     if self.mouse_button_handler == nil then
-        self.mouse_button_handler = _G.TheInput:AddMouseButtonHandler(function(button, down, x, y)
+        self.mouse_button_handler = _G.TheInput:AddMouseButtonHandler(function(button, is_up, x, y)
             if button ~= _G.MOUSEBUTTON_LEFT or not GuideConfig.menu_visible then
                 return
             end
@@ -244,7 +244,8 @@ function GuideMenuWidget:InstallInputHandlers()
             x = x or _G.TheFrontEnd.lastx or 0
             y = y or _G.TheFrontEnd.lasty or 0
 
-            if down then
+            -- DST's native callback names this boolean "is_up": false is press and true is release.
+            if not is_up then
                 if self:IsMouseInTitle(x, y) then
                     self:BeginDrag(x, y)
                     return

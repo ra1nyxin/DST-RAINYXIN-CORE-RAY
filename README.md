@@ -27,6 +27,7 @@
 - 已记录：即使改成 `_G.AddStategraphPostInit` 这种顶层字段访问，仍然可能在 strict 环境入口阶段触发同类报错；更稳的写法是 `rawget(_G, "AddStategraphPostInit")` 后再落局部别名。
 - 已记录：猪王远距离指引一开始只靠 `TheSim:FindEntities(...)` 根本不够，因为客户端拿不到同步半径外的猪王实体。
 - 已记录：猪王后来改成“近处真实实体优先，远处世界拓扑兜底”后才可用；而远距离方向近似如果只靠相机 heading，超过 `GetScreenPos(...)` 可用范围后很容易歪，最后换成 `TheCamera:GetRightVec()` / `GetDownVec()` 的向量近似才稳定。
+- 已记录：2026-07-24 这版可拖拽菜单第一次接世界前鼠标移动就崩，是因为 `widgets/widget:GetWorldPosition()` 返回的是 `Vector3`，不能直接写成 `local x, y = self:GetWorldPosition()` 后把 `x` / `y` 当纯数字参与面板命中判断；正确做法是先取返回对象，再读 `.x` / `.y`。
 - 现在没有做外部配置文件开关。
 
 实现记录：

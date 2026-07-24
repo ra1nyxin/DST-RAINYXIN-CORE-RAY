@@ -180,7 +180,9 @@ function GuideMenuWidget:IsMouseInside(mx, my)
         return false
     end
 
-    local world_x, world_y = self:GetWorldPosition()
+    local world_pos = self:GetWorldPosition()
+    local world_x = world_pos ~= nil and world_pos.x or 0
+    local world_y = world_pos ~= nil and world_pos.y or 0
     return mx >= world_x - PANEL_WIDTH * 0.5
         and mx <= world_x + PANEL_WIDTH * 0.5
         and my >= world_y - PANEL_HEIGHT * 0.5
